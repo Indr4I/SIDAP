@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SIDAP v0.9.1
 
 SIDAP is a small internal web application for managing pelanggan (customers), instalasi (installations), and permohonan (requests) for SIDAP operations. This version is built with Flask and stores data in a local SQLite database.
@@ -126,3 +127,7 @@ If the database is missing, you can create it manually using SQLite and `schema.
 - add input validation and error handling for permohonan forms
 - add automated tests and deployment documentation
 - add database initialization from code when `sidap.db` is missing
+=======
+# SIDAP
+Nothing To See Here
+>>>>>>> 8cb83aaec4e399607d93f36df80250102d2a9328
