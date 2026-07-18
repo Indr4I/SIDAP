@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Laporan Permohonan{% endblock %}
+{% block content %}
+<div class="no-print">
+  <h4 class="fw-bold mb-1">Evaluasi Kinerja Bagian Perencana &amp; Supervisi</h4>
+  <div class="text-secondary mb-3" style="font-size:13px">Rekap survey pasangan instalasi baru dan buka kembali per bulan</div>
+
+  <form class="row g-2 mb-3">
+    <div class="col-3">
+      <select class="form-select form-select-sm" name="tahun">
+        {% for t in tahun_list %}
+        <option value="{{ t }}" {{ 'selected' if t == tahun }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-3"><button class="btn btn-outline-secondary btn-sm w-100">Tampilkan</button></div>
+  </form>
+
+  <div class="d-flex gap-2 mb-3 align-items-center">
+    <button onclick="window.print()" class="btn btn-dark btn-sm">Cetak / simpan sebagai PDF</button>
+    <a href="{{ url_for('permohonan_laporan_unduh', tahun=tahun) }}" class="btn btn-outline-secondary btn-sm">Unduh sebagai .xlsx</a>
+    <select class="form-select form-select-sm" style="max-width:220px" onchange="if(this.value) window.location.href=this.value">
+      <option value="" selected disabled>Lihat laporan lain...</option>
+      <option value="{{ url_for('permohonan_laporan_rincian') }}">Rincian per pelanggan</option>
+      <option value="{{ url_for('permohonan_laporan_teknis') }}">Kinerja supervisi teknik</option>
+    </select>
+  </div>
+</div>
+
+<div class="stat-card" id="area-cetak" style="overflow-x:auto">
+  <div class="text-center mb-3">
+      <div style="flex:0 0 80px;">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" style="max-height:60px; max-width:80px;" onerror="this.style.display='none'">
+      </div>
+    <div class="fw-bold" style="font-size:15px"> EVALUASI KINERJA BAGIAN PERENCANA &amp; SUPERVISI</div>
+    <div style="font-size:12.5px">REKAP SURVEY PASANGAN INSTALASI BARU DAN BUKA KEMBALI &mdash; TAHUN {{ tahun }}</div>
+  </div>
+
+  <table class="table table-sm table-bordered mb-0" style="font-size:12px; min-width:820px">
+    <tr class="text-center fw-bold">
+      <th rowspan="2" style="width:5%">No</th>
+      <th rowspan="2">Bulan</th>
+      <th colspan="2">Permohonan dari Hublang</th>
+      <th colspan="2">Ditindaklanjuti</th>
+      <th colspan="2">Selisih</th>
+      <th rowspan="2">Total Masuk</th>
+    </tr>
+    <tr class="text-center fw-bold">
+      <th>SIB</th><th>BK</th>
+      <th>SIB</th><th>BK</th>
+      <th>SIB</th><th>BK</th>
+    </tr>
+    {% for b in baris %}
+    <tr class="text-center">
+      <td>{{ loop.index }}</td>
+      <td class="text-start">{{ b.bulan }}</td>
+      <td>{{ b.masuk_sib if b.masuk_sib else '-' }}</td>
+      <td>{{ b.masuk_bk if b.masuk_bk else '-' }}</td>
+      <td>{{ b.lanjut_sib if b.lanjut_sib else '-' }}</td>
+      <td>{{ b.lanjut_bk if b.lanjut_bk else '-' }}</td>
+      <td>{{ b.selisih_sib if b.selisih_sib else '-' }}</td>
+      <td>{{ b.selisih_bk if b.selisih_bk else '-' }}</td>
+      <td class="fw-bold">{{ b.total_masuk }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="fw-bold text-center">
+      <td colspan="2">JUMLAH</td>
+      <td>{{ total.masuk_sib }}</td>
+      <td>{{ total.masuk_bk }}</td>
+      <td>{{ total.lanjut_sib }}</td>
+      <td>{{ total.lanjut_bk }}</td>
+      <td>{{ total.selisih_sib }}</td>
+      <td>{{ total.selisih_bk }}</td>
+      <td>{{ total.total_masuk }}</td>
+    </tr>
+  </table>
+</div>
+
+<style>
+  .print-only { display: none; }
+
+  @media print {
+    .no-print, .sidebar { display: none !important; }
+    .app-frame { box-shadow: none !important; border: none !important; max-width: 100% !important; }
+    #area-cetak { border: none !important; box-shadow: none !important; }
+    body { background: #fff !important; }
+    .print-only { display: block !important; }
+  }
+</style>
+{% endblock %}

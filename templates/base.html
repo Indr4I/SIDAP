@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>SIDAP - {% block title %}{% endblock %}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body {
+    background: linear-gradient(160deg, #eaf2ff 0%, #f7fafe 45%, #eef4ff 100%);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  .app-frame {
+    width: 100%;       
+    min-height: 100vh;  
+    margin: 0;       
+    display: flex;
+    border-radius: 0;  
+    box-shadow: none;  
+    border: none;      
+  }
+  .sidebar {
+    width: 220px;
+    background: linear-gradient(180deg, #eef4ff 0%, #e3edfd 100%);
+    min-height: 100vh;
+    padding: 20px 14px;
+    border-right: 1px solid #dbe8ff;
+  }
+  .sidebar a {
+    color: #1a3154; 
+    font-size: 15px; 
+    font-weight: 500;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 3px;
+  }
+  .sidebar a .nav-emoji { font-size: 15px; width: 18px; text-align: center; }
+  .sidebar a.active {
+    background: linear-gradient(135deg, #2f6fed, #5b9df9);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(47, 111, 237, 0.35);
+  }
+  .sidebar a:not(.active):hover { background: #dce8fd; }
+  .sidebar .section-label { font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px; color:#7d93b8; margin:16px 0 4px 12px; }
+  .brand { color: #1d3f78; font-weight: 800; font-size: 17px; padding: 0 10px 22px; letter-spacing: 0.2px; }
+  .brand span {
+    background: linear-gradient(135deg, #2f6fed, #6aa6ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .main-area { background: transparent; }
+  .stat-card {
+    background: #fff;
+    border: 1px solid #e3ecfb;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(47, 111, 237, 0.06);
+  }
+  .stat-card .label { font-size:12px; color:#6b7280; }
+  .stat-card .value { font-size:22px; font-weight:700; color:#1d3f78; }
+  .badge-sib { background:#fef3c7; color:#92400e; }
+  .badge-bk { background:#dcfce7; color:#15803d; }
+  h4.fw-bold { color: #1d3f78; }
+  .btn-dark {
+    background: linear-gradient(135deg, #2f6fed, #1d3f78);
+    border: none;
+  }
+  .btn-dark:hover { background: linear-gradient(135deg, #2860d6, #17325f); }
+  /* Print helpers: elements with .print-only are hidden on screen and shown only during print.
+     Additional JS in the page will toggle .print-header visibility around the print dialog to
+     work around browser differences and stylesheet ordering. */
+  .print-only { display: none; }
+</style>
+</head>
+<body>
+<div class="app-frame d-flex">
+  <div class="sidebar flex-shrink-0">
+    <div class="brand">SI<span>DAP</span></div>
+    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}"><span class="nav-emoji">📊</span>Dashboard</a>
+
+    <div class="section-label">Permohonan</div>
+    <a href="{{ url_for('permohonan_list') }}" class="{{ 'active' if request.endpoint=='permohonan_list' }}"><span class="nav-emoji">📝</span>Semua Permohonan</a>
+    <a href="{{ url_for('permohonan_kecamatan') }}" class="{{ 'active' if request.endpoint=='permohonan_kecamatan' }}"><span class="nav-emoji">📍</span>Kecamatan</a>
+    <a href="{{ url_for('permohonan_periode') }}" class="{{ 'active' if request.endpoint=='permohonan_periode' }}"><span class="nav-emoji">📅</span>Tahun &amp; Bulan</a>
+    <a href="{{ url_for('permohonan_cari') }}" class="{{ 'active' if request.endpoint=='permohonan_cari' }}"><span class="nav-emoji">🔍</span>Cari Permohonan</a>
+    <a href="{{ url_for('permohonan_laporan') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('permohonan_laporan') }}"><span class="nav-emoji">🖨️</span>Laporan</a>
+
+    <div class="section-label">Terpasang</div>
+    <a href="{{ url_for('pelanggan_list') }}" class="{{ 'active' if request.endpoint in ['pelanggan_list','pelanggan_detail','pelanggan_tambah','pelanggan_edit'] }}"><span class="nav-emoji">👥</span>Semua Pelanggan</a>
+    <a href="{{ url_for('kecamatan_list') }}" class="{{ 'active' if request.endpoint=='kecamatan_list' }}"><span class="nav-emoji">📍</span>Kecamatan</a>
+    <a href="{{ url_for('periode_list') }}" class="{{ 'active' if request.endpoint=='periode_list' }}"><span class="nav-emoji">📅</span>Tahun &amp; Bulan</a>
+    <a href="{{ url_for('cari_pelanggan') }}" class="{{ 'active' if request.endpoint=='cari_pelanggan' }}"><span class="nav-emoji">🔍</span>Cari Pelanggan</a>
+    <a href="{{ url_for('laporan_bulanan') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('laporan_bulanan') }}"><span class="nav-emoji">🖨️</span>Laporan</a>
+
+    <div class="section-label">Lainnya</div>
+    <a href="{{ url_for('permohonan_impor') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('permohonan_impor') }}"><span class="nav-emoji">📥</span>Impor Permohonan</a>
+    <a href="{{ url_for('pelanggan_impor') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('pelanggan_impor') }}"><span class="nav-emoji">📥</span>Impor Pelanggan</a>
+  </div>
+  <div class="flex-grow-1 p-4 main-area">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, m in messages %}
+          <div class="alert alert-{{ 'danger' if category=='error' else 'success' }} py-2">{{ m }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {# Print header block that pages can override to show a consistent printed header #}
+    <div class="print-only print-header" style="display:none; margin-bottom:12px;">
+      {% block print_header %}{% endblock %}
+    </div>
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script>
+// Ensure print headers (class .print-header) are hidden in normal UI and shown just for printing.
+// Uses beforeprint/afterprint and matchMedia('print') for broader browser support.
+(function(){
+  function hideHeaders(){
+    document.querySelectorAll('.print-header').forEach(function(el){ el.style.display = 'none'; });
+  }
+  function showHeaders(){
+    document.querySelectorAll('.print-header').forEach(function(el){ el.style.display = 'block'; });
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    hideHeaders();
+    if (window.matchMedia) {
+      var mq = window.matchMedia('print');
+      try { mq.addListener(function(m){ m.matches ? showHeaders() : hideHeaders(); }); } catch(e) {}
+    }
+    window.addEventListener('beforeprint', showHeaders);
+    window.addEventListener('afterprint', hideHeaders);
+  });
+})();
+</script>
+
+</body>
+</html>

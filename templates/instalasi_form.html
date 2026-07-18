@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Tambah Instalasi{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Tambah instalasi untuk {{ pelanggan.nama }}</h4>
+<form method="post" class="bg-white p-3 rounded" style="max-width:600px">
+  <div class="row">
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Nomor instalasi</label>
+      <input class="form-control" name="nomor_instalasi" value="{{ form_data.nomor_instalasi if form_data else '' }}" required>
+    </div>
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Tanggal pasang</label>
+      <input type="date" class="form-control" name="tanggal_pasang" value="{{ form_data.tanggal_pasang if form_data else '' }}" required>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-4 mb-2">
+      <label class="form-label" style="font-size:13px">Diameter pipa</label>
+      <input class="form-control" name="diameter_pipa" placeholder="&#216;2" value="{{ form_data.diameter_pipa if form_data else '' }}">
+    </div>
+    <div class="col-4 mb-2">
+      <label class="form-label" style="font-size:13px">Tekanan air</label>
+      <input type="number" step="0.1" class="form-control" name="tekanan_air" value="{{ form_data.tekanan_air if form_data else '' }}">
+    </div>
+    <div class="col-4 mb-2">
+      <label class="form-label" style="font-size:13px">Status</label>
+      <select class="form-select" name="status" required>
+        <option value="SIB" {{ 'selected' if form_data and form_data.status=='SIB' }}>SIB</option>
+        <option value="BK" {{ 'selected' if form_data and form_data.status=='BK' }}>BK</option>
+      </select>
+    </div>
+  </div>
+  <div class="mb-2">
+    <label class="form-label" style="font-size:13px">Petugas (boleh kosong)</label>
+    <input class="form-control" name="petugas" value="{{ form_data.petugas if form_data else '' }}">
+  </div>
+  <div class="mb-2">
+    <label class="form-label" style="font-size:13px">Keterangan</label>
+    <input class="form-control" name="keterangan" value="{{ form_data.keterangan if form_data else '' }}">
+  </div>
+  <button class="btn btn-dark mt-2">Simpan</button>
+</form>
+{% endblock %}

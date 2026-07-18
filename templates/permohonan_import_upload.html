@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Impor Permohonan{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Impor data permohonan dari Excel</h4>
+
+<div class="bg-white p-3 rounded mb-3" style="max-width:560px">
+  <div class="fw-bold mb-2" style="font-size:14px">Langkah 1: unduh template</div>
+  <p style="font-size:13px" class="text-secondary">
+    Pakai template ini supaya kolomnya sesuai dengan struktur permohonan saat ini.
+  </p>
+  <a href="{{ url_for('permohonan_template') }}" class="btn btn-outline-dark btn-sm">Unduh template Excel</a>
+</div>
+
+<div class="bg-white p-3 rounded" style="max-width:560px">
+  <div class="fw-bold mb-2" style="font-size:14px">Langkah 2: upload file yang sudah diisi</div>
+  <form method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".xlsx" class="form-control mb-2" required>
+    <button class="btn btn-dark btn-sm">Cek data sebelum disimpan</button>
+  </form>
+  <div class="form-text mt-2" style="font-size:11px">
+    File akan ditampilkan dulu sebagai pratinjau -- belum masuk database sampai kamu konfirmasi.
+  </div>
+</div>
+{% endblock %}

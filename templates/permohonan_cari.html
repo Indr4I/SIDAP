@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Cari Permohonan{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Cari Permohonan</h4>
+
+<form class="mb-2">
+  <input class="form-control mb-2" name="q" value="{{ q }}" placeholder="Cari berdasarkan nama, lokasi, atau kecamatan" autofocus>
+  <button class="btn btn-dark btn-sm">Cari</button>
+</form>
+
+<div class="d-flex gap-2 mb-3">
+  {% for key, label in [("semua","Semua"), ("nama","Nama"), ("kecamatan","Kecamatan")] %}
+  <a href="{{ url_for('permohonan_cari', q=q, scope=key) }}"
+     class="btn btn-sm {{ 'btn-dark' if scope==key else 'btn-outline-secondary' }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+{% if q %}
+<div class="text-secondary mb-2" style="font-size:13px">{{ rows|length }} hasil ditemukan untuk &ldquo;{{ q }}&rdquo;</div>
+
+<div class="bg-white rounded">
+  {% for r in rows %}
+  <a href="{{ url_for('permohonan_edit', pmid=r.id) }}"
+     class="d-flex justify-content-between align-items-center text-decoration-none text-dark p-2 border-bottom">
+    <div>
+      <span class="fw-bold">{{ r.nama_pelanggan }}</span>
+      <div class="text-secondary" style="font-size:12px">{{ r.kecamatan }} &mdash; masuk {{ r.tanggal_permohonan }}</div>
+    </div>
+    <span class="badge {{ 'badge-sib' if r.jenis=='SIB' else 'badge-bk' }}">{{ r.jenis }}</span>
+  </a>
+  {% else %}
+  <div class="text-secondary text-center py-3" style="font-size:13px">Tidak ada hasil.</div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if permohonan else "Catat" }} Permohonan{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">{{ "Edit Permohonan" if permohonan else "Catat Permohonan Baru" }}</h4>
+<form method="post" class="bg-white p-3 rounded" style="max-width:640px">
+
+  <div class="fw-bold mb-2" style="font-size:14px">Data pemohon</div>
+  <div class="mb-2">
+    <label class="form-label" style="font-size:13px">Nama pelanggan</label>
+    <input class="form-control" name="nama_pelanggan"
+           value="{{ permohonan.nama_pelanggan if permohonan else (form_data.nama_pelanggan if form_data else '') }}" required>
+  </div>
+  <div class="mb-2">
+    <label class="form-label" style="font-size:13px">Lokasi / Alamat</label>
+    <input class="form-control" name="lokasi"
+           value="{{ permohonan.lokasi if permohonan else (form_data.lokasi if form_data else '') }}">
+  </div>
+  <div class="row">
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Kelurahan</label>
+      <input class="form-control" name="kelurahan"
+             value="{{ permohonan.kelurahan if permohonan else (form_data.kelurahan if form_data else '') }}">
+    </div>
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Kecamatan</label>
+      <input class="form-control" name="kecamatan" list="kecamatan-list"
+             value="{{ permohonan.kecamatan if permohonan else (form_data.kecamatan if form_data else '') }}" required>
+      <datalist id="kecamatan-list">
+        {% for k in semua_kecamatan %}<option value="{{ k }}">{% endfor %}
+      </datalist>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Jenis</label>
+      <select class="form-select" name="jenis" required>
+        <option value="SIB" {{ 'selected' if (permohonan and permohonan.jenis=='SIB') or (form_data and form_data.jenis=='SIB') }}>SIB &mdash; Sambungan Baru</option>
+        <option value="BK" {{ 'selected' if (permohonan and permohonan.jenis=='BK') or (form_data and form_data.jenis=='BK') }}>BK &mdash; Buka Kembali</option>
+      </select>
+    </div>
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Tanggal permohonan masuk</label>
+      <input type="date" class="form-control" name="tanggal_permohonan"
+             value="{{ permohonan.tanggal_permohonan if permohonan else (form_data.tanggal_permohonan if form_data else '') }}" required>
+    </div>
+  </div>
+
+  {% if permohonan %}
+  <hr>
+  <div class="fw-bold mb-2" style="font-size:14px">Hasil survey</div>
+  <div class="row">
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Tanggal survey</label>
+      <input type="date" class="form-control" name="tanggal_survey" value="{{ permohonan.tanggal_survey or '' }}">
+    </div>
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Petugas survey</label>
+      <input class="form-control" name="petugas_survey" value="{{ permohonan.petugas_survey or '' }}">
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Ditindaklanjuti?</label>
+      <select class="form-select" name="ditindaklanjuti">
+        <option value="" {{ 'selected' if permohonan.ditindaklanjuti is none }}>Belum disurvei</option>
+        <option value="ya" {{ 'selected' if permohonan.ditindaklanjuti == 1 }}>Ya, ditindaklanjuti</option>
+        <option value="tidak" {{ 'selected' if permohonan.ditindaklanjuti == 0 }}>Tidak (selisih, kembali ke Hublang)</option>
+      </select>
+    </div>
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Jenis pipa</label>
+      <div class="d-flex gap-3 mt-2">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="jenis_pipa" value="P.Dinas" id="pipa-dinas"
+                 {{ 'checked' if permohonan.jenis_pipa == 'P.Dinas' }}>
+          <label class="form-check-label" for="pipa-dinas" style="font-size:13px">P. Dinas (&le;10 meter)</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="jenis_pipa" value="P.Distribusi" id="pipa-distribusi"
+                 {{ 'checked' if permohonan.jenis_pipa == 'P.Distribusi' }}>
+          <label class="form-check-label" for="pipa-distribusi" style="font-size:13px">P. Distribusi (&gt;10 meter)</label>
+        </div>
+      </div>
+      <div class="form-text" style="font-size:11px">Panjang pipa otomatis mengikuti jenis pipa, bukan diisi terpisah.</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Tanggal dikirim ke Hublang</label>
+      <input type="date" class="form-control" name="tanggal_dikirim_hublang" value="{{ permohonan.tanggal_dikirim_hublang or '' }}" style="max-width:220px">
+      <div class="form-text" style="font-size:11px">Diisi kalau gambar/perhitungan teknis selesai dan hasilnya dikirim ke Hublang (beda dari "kembali ke Hublang" yang khusus kasus selisih/gagal).</div>
+    </div>
+    <div class="col-6 mb-2">
+      <label class="form-label" style="font-size:13px">Tanggal kembali ke Hublang (kalau selisih)</label>
+      <input type="date" class="form-control" name="tanggal_kembali_hublang" value="{{ permohonan.tanggal_kembali_hublang or '' }}" style="max-width:220px">
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="mb-2">
+    <label class="form-label" style="font-size:13px">Keterangan</label>
+    <select class="form-select" name="keterangan" id="keterangan-select">
+      <option value="">-- pilih --</option>
+      {% for k in keterangan_pilihan %}
+      <option value="{{ k }}" {{ 'selected' if (permohonan and permohonan.keterangan==k) }}>{{ k }}</option>
+      {% endfor %}
+      <option value="__lainnya__">Lainnya (isi manual)</option>
+    </select>
+    <input class="form-control mt-2" name="keterangan_manual" id="keterangan-manual" placeholder="Tulis keterangan lain" style="display:none">
+  </div>
+
+  <button class="btn btn-dark mt-2">Simpan</button>
+</form>
+
+<script>
+// dropdown Keterangan: kalau pilih "Lainnya", nongolin input manual dan
+// pakai nilai itu sebagai keterangan beneran pas submit
+const sel = document.getElementById('keterangan-select');
+const manual = document.getElementById('keterangan-manual');
+function cekLainnya() {
+  if (sel.value === '__lainnya__') {
+    manual.style.display = 'block';
+    manual.name = 'keterangan';
+    sel.removeAttribute('name');
+  } else {
+    manual.style.display = 'none';
+    manual.removeAttribute('name');
+    sel.name = 'keterangan';
+  }
+}
+sel.addEventListener('change', cekLainnya);
+
+// kalau keterangan tersimpan bukan salah satu pilihan dropdown, anggap "lainnya"
+{% if permohonan and permohonan.keterangan and permohonan.keterangan not in keterangan_pilihan %}
+sel.value = '__lainnya__';
+manual.value = {{ permohonan.keterangan|tojson }};
+cekLainnya();
+{% endif %}
+</script>
+{% endblock %}

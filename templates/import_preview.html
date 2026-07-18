@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Pratinjau Impor{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-1">Pratinjau impor</h4>
+<div class="text-secondary mb-3" style="font-size:13px">
+  {{ total }} baris terbaca &mdash; {{ jumlah_baru }} pelanggan baru akan dibuat, {{ jumlah_error }} baris bermasalah.
+</div>
+
+{% if jumlah_error > 0 %}
+<div class="alert alert-warning py-2" style="font-size:13px">
+  Baris yang bermasalah <b>tidak</b> akan disimpan kalau kamu lanjut konfirmasi. Perbaiki dulu di file
+  Excel dan upload ulang kalau mau semua baris masuk.
+</div>
+{% endif %}
+
+<div class="bg-white p-3 rounded mb-3" style="overflow-x:auto">
+  <table class="table table-sm" style="font-size:12px">
+    <tr>
+      <th>Nama</th><th>Kecamatan</th><th>No. Instalasi</th><th>Tgl Pasang</th><th>Status</th>
+      <th>Pelanggan</th><th>Catatan</th>
+    </tr>
+    {% for r in rows %}
+    <tr class="{{ 'table-danger' if r.errors else '' }}">
+      <td>{{ r.nama }}</td>
+      <td>{{ r.kecamatan }}</td>
+      <td>{{ r.nomor_instalasi }}</td>
+      <td>{{ r.tanggal_pasang }}</td>
+      <td>{{ r.status }}</td>
+      <td>{{ r.pelanggan_status }}</td>
+      <td>
+        {% if r.errors %}
+          <span class="text-danger">{{ r.errors | join(", ") }}</span>
+        {% else %}
+          <span class="text-success">Siap disimpan</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<form method="post" action="{{ url_for('pelanggan_impor_konfirmasi') }}">
+  <input type="hidden" name="token" value="{{ token }}">
+  <button class="btn btn-dark" {{ 'disabled' if jumlah_error == total }}>
+    Simpan {{ total - jumlah_error }} baris yang valid
+  </button>
+  <a href="{{ url_for('pelanggan_impor') }}" class="btn btn-outline-secondary">Batal, upload ulang</a>
+</form>
+{% endblock %}

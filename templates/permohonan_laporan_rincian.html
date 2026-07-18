@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Rincian Permohonan Bulanan{% endblock %}
+{% block content %}
+<div class="no-print">
+  <h4 class="fw-bold mb-1">Rincian Permohonan Bulanan</h4>
+  <div class="text-secondary mb-3" style="font-size:13px">Format persis laporan Hubungan Langganan &mdash; per SIB dan Buka Kembali</div>
+
+  <form class="row g-2 mb-3">
+    <div class="col-3">
+      <select class="form-select form-select-sm" name="tahun">
+        {% for t in tahun_list %}
+        <option value="{{ t }}" {{ 'selected' if t == tahun }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-3">
+      <select class="form-select form-select-sm" name="bulan">
+        {% for num, nama in nama_bulan_list %}
+        <option value="{{ '%02d' % num }}" {{ 'selected' if ('%02d' % num) == bulan }}>{{ nama }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-3"><button class="btn btn-outline-secondary btn-sm w-100">Tampilkan</button></div>
+  </form>
+
+  <div class="d-flex gap-2 mb-3 align-items-center">
+    <button onclick="window.print()" class="btn btn-dark btn-sm">Cetak / simpan sebagai PDF</button>
+    <a href="{{ url_for('permohonan_laporan_rincian_unduh', tahun=tahun, bulan=bulan) }}" class="btn btn-outline-secondary btn-sm">Unduh sebagai .xlsx</a>
+    <select class="form-select form-select-sm" style="max-width:220px" onchange="if(this.value) window.location.href=this.value">
+      <option value="" selected disabled>Lihat laporan lain...</option>
+      <option value="{{ url_for('permohonan_laporan') }}">Ringkasan tahunan</option>
+      <option value="{{ url_for('permohonan_laporan_teknis') }}">Kinerja supervisi teknik</option>
+    </select>
+  </div>
+</div>
+
+<div class="print-only" style="display:none; font-size:14px; font-weight:600; margin-bottom:10px;">
+  Laporan Rincian Permohonan Bulanan / Bulan {{ nama_bulan }} {{ tahun }}
+</div>
+
+<div class="stat-card mb-4" id="area-cetak" style="overflow-x:auto">
+  <div class="text-center mb-3">
+    <div style="flex:0 0 80px;">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" style="max-height:60px; max-width:80px;" onerror="this.style.display='none'">
+    </div>
+    <div class="fw-bold" style="font-size:14px">LAPORAN PERMOHONAN MASUK BULAN {{ nama_bulan|upper }} {{ tahun }} DARI HUBUNGAN LANGGANAN</div>
+  </div>
+  <table class="table table-sm table-bordered mb-0" style="font-size:11.5px; min-width:900px">
+    <tr class="text-center fw-bold">
+      <th>No</th><th>Nama Pelanggan</th><th>Alamat</th><th>Kelurahan</th><th>Kecamatan</th>
+      <th>Ke Perencana</th><th>Survey</th><th>Kembali ke Hublang</th><th>Petugas Survey</th><th>Keterangan</th>
+    </tr>
+    {% for r in sib_rows %}
+    <tr>
+      <td class="text-center">{{ loop.index }}</td>
+      <td>{{ r.nama_pelanggan }}</td>
+      <td>{{ r.lokasi }}</td>
+      <td>{{ r.kelurahan }}</td>
+      <td>{{ r.kecamatan }}</td>
+      <td class="text-center">{{ r.tanggal_permohonan }}</td>
+      <td class="text-center">{{ r.tanggal_survey or "-" }}</td>
+      <td class="text-center">{{ r.tanggal_kembali_hublang or "-" }}</td>
+      <td>{{ r.petugas_survey or "-" }}</td>
+      <td>{{ r.keterangan or "-" }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10" class="text-center text-secondary py-3">Belum ada permohonan SIB di periode ini.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="stat-card" style="overflow-x:auto">
+  <div class="text-center mb-3">
+    <div class="fw-bold" style="font-size:14px">LAPORAN PERMOHONAN BUKA KEMBALI BULAN {{ nama_bulan|upper }} {{ tahun }} DARI HUBUNGAN LANGGANAN</div>
+  </div>
+  <table class="table table-sm table-bordered mb-0" style="font-size:11.5px; min-width:900px">
+    <tr class="text-center fw-bold">
+      <th>No</th><th>Nama Pelanggan</th><th>Alamat</th><th>Kelurahan</th><th>Kecamatan</th>
+      <th>Ke Perencana</th><th>Survey</th><th>Kembali ke Hublang</th><th>Petugas Survey</th><th>Keterangan</th>
+    </tr>
+    {% for r in bk_rows %}
+    <tr>
+      <td class="text-center">{{ loop.index }}</td>
+      <td>{{ r.nama_pelanggan }}</td>
+      <td>{{ r.lokasi }}</td>
+      <td>{{ r.kelurahan }}</td>
+      <td>{{ r.kecamatan }}</td>
+      <td class="text-center">{{ r.tanggal_permohonan }}</td>
+      <td class="text-center">{{ r.tanggal_survey or "-" }}</td>
+      <td class="text-center">{{ r.tanggal_kembali_hublang or "-" }}</td>
+      <td>{{ r.petugas_survey or "-" }}</td>
+      <td>{{ r.keterangan or "-" }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10" class="text-center text-secondary py-3">Belum ada permohonan buka kembali di periode ini.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<style>
+  .print-only { display: none; }
+
+  @media print {
+    .no-print, .sidebar { display: none !important; }
+    .app-frame { box-shadow: none !important; border: none !important; max-width: 100% !important; }
+    #area-cetak { border: none !important; box-shadow: none !important; }
+    body { background: #fff !important; }
+    .print-only { display: block !important; }
+  }
+</style>
+{% endblock %}

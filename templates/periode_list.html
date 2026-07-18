@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Tahun & Bulan{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-1">Tahun &amp; Bulan</h4>
+<div class="text-secondary mb-3" style="font-size:13px">Rekap pemasangan berdasarkan periode waktu</div>
+
+<!-- Alert Warning jika ada data tanggal yang rusak/null -->
+<div class="alert alert-warning py-2" id="alert-rusak" style="display: none; font-size:13px;">
+  <span id="txt-rusak-count">0</span> baris instalasi punya format tanggal yang gak kebaca sistem, jadi gak masuk rekap ini.
+  Cek data itu di "Semua Pelanggan" dan perbaiki lewat menu edit.
+</div>
+
+<!-- Container Tombol Pilihan Tahun (Client-Sided) -->
+<div class="d-flex gap-2 mb-3" id="container-tahun">
+  <!-- Tombol tahun akan diisi secara dinamis oleh JavaScript -->
+</div>
+
+<!-- Wadah Utama Grafik & Ringkasan Kotak -->
+<div id="main-content-area" style="display: none;">
+  
+  <!-- 1. Grafik Batang Vertikal Asli v0.5 -->
+  <div class="stat-card mb-3">
+    <div class="fw-bold mb-2" style="font-size:14px">Pemasangan per bulan &mdash; <span id="txt-tahun-terpilih"></span></div>
+    <div class="d-flex align-items-end gap-2" style="height:110px" id="chart-bar-container">
+      <!-- Batang grafik diisi dinamis oleh JS -->
+    </div>
+    <div class="d-flex gap-2 mt-1" id="chart-label-container">
+      <!-- Label nama bulan diisi dinamis oleh JS -->
+    </div>
+  </div>
+
+  <!-- 2. Ringkasan Kotak Grid Asli v0.5 -->
+  <div class="stat-card">
+    <div class="fw-bold mb-2" style="font-size:14px">Ringkasan per bulan</div>
+    <div class="row g-2" id="grid-bulan-container">
+      <!-- Kotak ringkasan diisi dinamis oleh JS -->
+    </div>
+  </div>
+
+</div>
+
+<!-- Wadah Loading Pas Awal Buka -->
+<div id="loading-area" class="text-secondary text-center py-4" style="font-size:13px;">
+  Memuat data periode...
+</div>
+
+<!-- ========================================== -->
+<!-- JAVASCRIPT LOGIC FOR LIVE PERIODE LIST     -->
+<!-- ========================================== -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const containerTahun = document.getElementById('container-tahun');
+    const alertRusak = document.getElementById('alert-rusak');
+    const txtRusakCount = document.getElementById('txt-rusak-count');
+    const mainContentArea = document.getElementById('main-content-area');
+    const loadingArea = document.getElementById('loading-area');
+    
+    const txtTahunTerpilih = document.getElementById('txt-tahun-terpilih');
+    const chartBarContainer = document.getElementById('chart-bar-container');
+    const chartLabelContainer = document.getElementById('chart-label-container');
+    const gridBulanContainer = document.getElementById('grid-bulan-container');
+
+    let tahunButtonsLoaded = false;
+
+    function loadPeriodeData(tahun = '') {
+        loadingArea.style.display = 'block';
+        mainContentArea.style.display = 'none';
+
+        fetch(`/api/periode-stats?tahun=${tahun}`)
+            .then(response => {
+                if (!response.ok) throw new Error("HTTP error " + response.status);
+                return response.json();
+            })
+            .then(data => {
+                loadingArea.style.display = 'none';
+                
+                // 1. Render Tombol Pilih Tahun (Hanya sekali di awal load)
+                if (!tahunButtonsLoaded && data.tahun_list) {
+                    containerTahun.innerHTML = '';
+                    if (data.tahun_list.length === 0) {
+                        containerTahun.innerHTML = '<span class="text-secondary" style="font-size:13px">Belum ada data pemasangan.</span>';
+                    } else {
+                        data.tahun_list.forEach(t => {
+                            const btn = document.createElement('a');
+                            btn.href = '#';
+                            btn.className = `btn btn-sm ${t === data.tahun_terpilih ? 'btn-dark' : 'btn-outline-secondary'}`;
+                            btn.innerText = t;
+                            
+                            // Aksi klik ganti tahun secara client-sided tanpa reload
+                            btn.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                // Ubah style tombol aktif
+                                document.querySelectorAll('#container-tahun .btn').forEach(b => {
+                                    b.classList.remove('btn-dark');
+                                    b.classList.add('btn-outline-secondary');
+                                });
+                                btn.classList.remove('btn-outline-secondary');
+                                btn.classList.add('btn-dark');
+                                
+                                loadPeriodeData(t);
+                            });
+                            containerTahun.appendChild(btn);
+                        });
+                    }
+                    tahunButtonsLoaded = true;
+                }
+
+                // 2. Handle Warning Tanggal Rusak
+                if (data.rusak > 0) {
+                    txtRusakCount.innerText = data.rusak;
+                    alertRusak.style.display = 'block';
+                } else {
+                    alertRusak.style.display = 'none';
+                }
+
+                if (data.tahun_list && data.tahun_list.length > 0) {
+                    mainContentArea.style.display = 'block';
+                    txtTahunTerpilih.innerText = data.tahun_terpilih;
+
+                    // 3. Render Grafis Batang Vertikal Asli v0.5
+                    chartBarContainer.innerHTML = '';
+                    chartLabelContainer.innerHTML = '';
+                    gridBulanContainer.innerHTML = '';
+
+                    data.ringkasan.forEach(r => {
+                        // Hitung tinggi batang (maksimal 90px sesuai rumus Jinja v0.5 kamu)
+                        const tinggiBar = r.jumlah > 0 ? Math.round((r.jumlah / data.max_jumlah) * 90) : 4;
+                        // Warna batang hitam jika jumlahnya maksimal, biru muda jika biasa
+                        const warnaBar = (r.jumlah === data.max_jumlah && r.jumlah > 0) ? 'var(--bs-dark)' : '#a9c6f5';
+
+                        const barHtml = `
+                            <a href="/pelanggan?tahun=${data.tahun_terpilih}&bulan=${r.nomor}" class="flex-fill text-decoration-none" title="${r.nama}: ${r.jumlah} pemasangan">
+                                <div style="height:${tinggiBar}px; min-height:4px; border-radius:3px 3px 0 0; background: ${warnaBar};"></div>
+                            </a>
+                        `;
+                        chartBarContainer.insertAdjacentHTML('beforeend', barHtml);
+
+                        const labelHtml = `<div class="flex-fill text-center" style="font-size:11px; color:#8a8f98">${r.nama}</div>`;
+                        chartLabelContainer.insertAdjacentHTML('beforeend', labelHtml);
+
+                        // 4. Render Kotak Grid Ringkasan Asli v0.5
+                        const gridHtml = `
+                            <div class="col-3">
+                              <a href="/pelanggan?tahun=${data.tahun_terpilih}&bulan=${r.nomor}" class="text-decoration-none text-dark">
+                                <div class="border rounded p-2 text-center">
+                                  <div class="text-secondary" style="font-size:11px">${r.nama}</div>
+                                  <div class="fw-bold">${r.jumlah}</div>
+                                </div>
+                              </a>
+                            </div>
+                        `;
+                        gridBulanContainer.insertAdjacentHTML('beforeend', gridHtml);
+                    });
+                }
+            })
+            .catch(err => {
+                console.error("Gagal memuat data periode:", err);
+                loadingArea.innerHTML = '<span class="text-danger" style="font-size:13px;">Terjadi kesalahan sistem saat mengambil data.</span>';
+            });
+    }
+
+    loadPeriodeData();
+});
+</script>
+{% endblock %}

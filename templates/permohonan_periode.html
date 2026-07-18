@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Permohonan per Periode{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-1">Permohonan &mdash; Tahun &amp; Bulan</h4>
+<div class="text-secondary mb-3" style="font-size:13px">Rekap permohonan masuk berdasarkan periode waktu</div>
+
+<div class="d-flex gap-2 mb-3">
+  {% for t in tahun_list %}
+  <a href="{{ url_for('permohonan_periode', tahun=t) }}"
+     class="btn btn-sm {{ 'btn-dark' if t == tahun_terpilih else 'btn-outline-secondary' }}">{{ t }}</a>
+  {% else %}
+  <span class="text-secondary" style="font-size:13px">Belum ada data permohonan.</span>
+  {% endfor %}
+</div>
+
+{% if tahun_list %}
+<div class="stat-card mb-3">
+  <div class="fw-bold mb-2" style="font-size:14px">Permohonan masuk per bulan &mdash; {{ tahun_terpilih }}</div>
+  <div class="d-flex align-items-end gap-2" style="height:110px">
+    {% for r in ringkasan %}
+    <a href="{{ url_for('permohonan_list', tahun=tahun_terpilih, bulan=r.nomor) }}" class="flex-fill text-decoration-none"
+       title="{{ r.nama }}: {{ r.jumlah }} permohonan (SIB {{ r.sib }}, BK {{ r.bk }})">
+      <div style="height:{{ (r.jumlah / max_jumlah * 90) | round if r.jumlah else 4 }}px; min-height:4px; border-radius:3px 3px 0 0;
+                  background: {{ 'var(--bs-dark)' if r.jumlah == max_jumlah and r.jumlah > 0 else '#a9c6f5' }};"></div>
+    </a>
+    {% endfor %}
+  </div>
+  <div class="d-flex gap-2 mt-1">
+    {% for r in ringkasan %}
+    <div class="flex-fill text-center" style="font-size:11px; color:#8a8f98">{{ r.nama }}</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="stat-card">
+  <div class="fw-bold mb-2" style="font-size:14px">Ringkasan per bulan</div>
+  <div class="row g-2">
+    {% for r in ringkasan %}
+    <div class="col-3">
+      <a href="{{ url_for('permohonan_list', tahun=tahun_terpilih, bulan=r.nomor) }}" class="text-decoration-none text-dark">
+        <div class="border rounded p-2 text-center">
+          <div class="text-secondary" style="font-size:11px">{{ r.nama }}</div>
+          <div class="fw-bold">{{ r.jumlah }}</div>
+          <div class="text-secondary" style="font-size:10px">{{ r.sib }} SIB &middot; {{ r.bk }} BK</div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

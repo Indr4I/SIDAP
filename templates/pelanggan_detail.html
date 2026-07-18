@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Detail Pelanggan{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-1">{{ pelanggan.nama }}</h4>
+<div class="text-secondary mb-3" style="font-size:13px">{{ pelanggan.alamat }} &mdash; {{ pelanggan.kelurahan }}, {{ pelanggan.kecamatan }}</div>
+
+<div class="d-flex gap-2 mb-3 no-print">
+  <a href="{{ url_for('pelanggan_edit', pid=pelanggan.id) }}" class="btn btn-sm btn-outline-secondary">Edit data pelanggan</a>
+  <a href="{{ url_for('instalasi_tambah', pid=pelanggan.id) }}" class="btn btn-sm btn-dark">+ Tambah instalasi baru</a>
+  <form method="post" action="{{ url_for('pelanggan_hapus', pid=pelanggan.id) }}" onsubmit="return confirm('Hapus pelanggan ini beserta seluruh instalasinya?')">
+    <button class="btn btn-sm btn-outline-danger">Hapus pelanggan</button>
+  </form>
+  <button onclick="window.print()" class="btn btn-sm btn-dark">Cetak</button>
+</div>
+
+{% block print_header %}
+<div class="print-only print-header" style="display:none;">
+<div style="display:flex; align-items:center; gap:12px;">
+  <div style="flex:0 0 80px;">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" style="max-height:60px; max-width:80px;" onerror="this.style.display='none'">
+  </div>
+  <div style="flex:1; text-align:center; font-size:12px;">
+    <div style="font-weight:800; font-size:14px;">LAPORAN KINERJA SUPERVISI TEKNIS / GAMBAR / PERHITUNGAN TEKNIS PERMOHONAN SAMBUNGAN INSTALASI BARU DAN BUKA KEMBALI</div>
+    <div style="margin-top:4px; font-weight:600;">PELANGGAN: {{ pelanggan.nama }}</div>
+    {% if request.args.get('bulan') or request.args.get('tahun') %}
+    <div style="margin-top:4px; font-size:11px;">BULAN : {{ request.args.get('bulan') or '-' }} {{ request.args.get('tahun') or '' }}</div>
+    {% endif %}
+  </div>
+</div>
+</div>
+{% endblock %}
+
+<div class="bg-white p-3 rounded">
+  <div class="fw-bold mb-2" style="font-size:14px">Instalasi ({{ instalasi|length }})</div>
+  <table class="table table-sm table-bordered">
+    <tr><th>No. Instalasi</th><th>Tgl Pasang</th><th>&#216;</th><th>Tek</th><th>Status</th><th>Petugas</th><th class="no-print"></th></tr>
+    {% for i in instalasi %}
+    <tr>
+      <td>{{ i.nomor_instalasi }}</td><td>{{ i.tanggal_pasang }}</td><td>{{ i.diameter_pipa }}</td><td>{{ i.tekanan_air }}</td>
+      <td><span class="badge {{ 'badge-sib' if i.status=='SIB' else 'badge-bk' }}">{{ i.status }}</span></td>
+      <td>{{ i.petugas or "—" }}</td>
+      <td class="no-print"><a href="{{ url_for('instalasi_edit', iid=i.id) }}" class="btn btn-sm btn-outline-secondary py-0">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<style>
+  .print-only { display: none; }
+  @media print {
+    .sidebar { display: none !important; }
+    .app-frame { box-shadow: none !important; border: none !important; max-width: 100% !important; }
+    body { background: #fff !important; }
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    table { width:100% !important; border-collapse: collapse !important; font-size: 11px !important; }
+    table th, table td { border: 1px solid #333 !important; padding: 6px !important; }
+    table th { background: #f4f4f4 !important; color: #000 !important; }
+    .text-nowrap { white-space: normal !important; }
+  }
+</style>
+{% endblock %}

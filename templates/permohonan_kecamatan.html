@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Permohonan per Kecamatan{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-1">Permohonan &mdash; Kecamatan</h4>
+<div class="text-secondary mb-3" style="font-size:13px">{{ rows|length }} kecamatan tercakup &mdash; klik satu untuk melihat rincian permohonan</div>
+
+<div class="row g-3">
+  {% for r in rows %}
+  <div class="col-4">
+    <a href="{{ url_for('permohonan_list', kecamatan=r.kecamatan) }}" class="text-decoration-none text-dark">
+      <div class="stat-card">
+        <div class="fw-bold mb-2" style="font-size:14px">{{ r.kecamatan }}</div>
+        <div class="d-flex justify-content-between" style="font-size:12px">
+          <span class="text-secondary">Total</span><span class="fw-bold">{{ r.total }}</span>
+        </div>
+        <div class="d-flex justify-content-between" style="font-size:12px">
+          <span class="text-secondary">SIB / BK</span><span class="fw-bold">{{ r.sib }} / {{ r.bk }}</span>
+        </div>
+        <div class="d-flex justify-content-between" style="font-size:12px">
+          <span class="text-secondary">Menunggu</span><span class="fw-bold">{{ r.menunggu }}</span>
+        </div>
+        <div class="d-flex justify-content-between" style="font-size:12px">
+          <span class="text-secondary">Selisih</span><span class="fw-bold" style="color:#b45309">{{ r.selisih }}</span>
+        </div>
+        <div class="d-flex justify-content-between" style="font-size:12px">
+          <span class="text-secondary">Sudah terpasang</span><span class="fw-bold" style="color:#15803d">{{ r.selesai }}</span>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% else %}
+  <div class="text-secondary" style="font-size:13px">Belum ada data permohonan.</div>
+  {% endfor %}
+</div>
+{% endblock %}

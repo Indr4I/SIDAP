@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Cari Pelanggan{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Cari Pelanggan</h4>
+
+<form class="mb-2" id="form-cari">
+  <input class="form-control mb-2" id="input-q" placeholder="Cari berdasarkan nama, no. instalasi, atau kecamatan" autofocus>
+  <button type="submit" class="btn btn-dark btn-sm">Cari</button>
+</form>
+
+<div class="d-flex gap-2 mb-3" id="scope-buttons">
+  <button type="button" class="btn btn-sm btn-dark" data-scope="semua">Semua</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary" data-scope="nama">Nama</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary" data-scope="instalasi">No. Instalasi</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary" data-scope="kecamatan">Kecamatan</button>
+</div>
+
+<div class="text-secondary mb-2" style="font-size:13px" id="txt-hasil-info"></div>
+<div class="bg-white rounded" id="area-hasil"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  let scope = "semua";
+
+  const formCari = document.getElementById("form-cari");
+  const inputQ = document.getElementById("input-q");
+  const scopeButtons = document.getElementById("scope-buttons");
+  const txtHasilInfo = document.getElementById("txt-hasil-info");
+  const areaHasil = document.getElementById("area-hasil");
+
+  // isi awal dari query string kalau ada (misal dari link luar)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("q")) inputQ.value = urlParams.get("q");
+  if (urlParams.get("scope")) scope = urlParams.get("scope");
+  setActiveScopeButton();
+
+  formCari.addEventListener("submit", function (e) {
+    e.preventDefault();
+    cariPelanggan();
+  });
+
+  scopeButtons.addEventListener("click", function (e) {
+    const btn = e.target.closest("button[data-scope]");
+    if (!btn) return;
+    scope = btn.dataset.scope;
+    setActiveScopeButton();
+    cariPelanggan();
+  });
+
+  function setActiveScopeButton() {
+    scopeButtons.querySelectorAll("button[data-scope]").forEach(function (btn) {
+      const aktif = btn.dataset.scope === scope;
+      btn.classList.toggle("btn-dark", aktif);
+      btn.classList.toggle("btn-outline-secondary", !aktif);
+    });
+  }
+
+  function cariPelanggan() {
+    const q = inputQ.value.trim();
+    if (!q) {
+      txtHasilInfo.innerText = "";
+      areaHasil.innerHTML = "";
+      return;
+    }
+
+    txtHasilInfo.innerText = "Mencari...";
+    areaHasil.innerHTML = "";
+
+    fetch(`/api/cari?q=${encodeURIComponent(q)}&scope=${scope}`)
+      .then(function (response) {
+        if (!response.ok) throw new Error("HTTP error " + response.status);
+        return response.json();
+      })
+      .then(function (data) {
+        const rows = data.results || [];
+        txtHasilInfo.innerText = `${rows.length} hasil ditemukan untuk \u201c${data.q}\u201d`;
+
+        if (rows.length === 0) {
+          areaHasil.innerHTML = '<div class="text-secondary text-center py-3" style="font-size:13px">Tidak ada hasil.</div>';
+          return;
+        }
+
+        areaHasil.innerHTML = "";
+        rows.forEach(function (r) {
+          const badgeInst = r.urutan_instalasi > 1
+            ? `<span class="badge text-bg-light" style="font-size:10px">inst. ${r.urutan_instalasi}</span>`
+            : "";
+          const badgeStatus = r.status === "SIB" ? "badge-sib" : "badge-bk";
+
+          const a = document.createElement("a");
+          a.href = `/pelanggan/${r.pelanggan_id}`;
+          a.className = "d-flex justify-content-between align-items-center text-decoration-none text-dark p-2 border-bottom";
+          a.innerHTML = `
+            <div>
+              <span class="fw-bold">${r.nama}</span>
+              ${badgeInst}
+              <div class="text-secondary" style="font-size:12px">${r.kecamatan} &mdash; ${r.nomor_instalasi}, dipasang ${r.tanggal_pasang}</div>
+            </div>
+            <span class="badge ${badgeStatus}">${r.status}</span>
+          `;
+          areaHasil.appendChild(a);
+        });
+      })
+      .catch(function (err) {
+        console.error("Gagal mencari pelanggan:", err);
+        areaHasil.innerHTML = '<div class="text-danger text-center py-3" style="font-size:13px">Terjadi kegagalan memproses pencarian.</div>';
+      });
+  }
+
+  // kalau ada query awal dari URL, langsung cari
+  if (inputQ.value) cariPelanggan();
+});
+</script>
+{% endblock %}
