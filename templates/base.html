@@ -45,7 +45,7 @@
     box-shadow: 0 2px 8px rgba(47, 111, 237, 0.35);
   }
   .sidebar a:not(.active):hover { background: #dce8fd; }
-  .sidebar .section-label { font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px; color:#7d93b8; margin:16px 0 4px 12px; }
+  .sidebar .section-label { font-size:15px; text-transform:uppercase; letter-spacing:0.6px; color:black; margin:16px 0 4px 12px; font-weight:bold; }
   .brand { color: #1d3f78; font-weight: 800; font-size: 17px; padding: 0 10px 22px; letter-spacing: 0.2px; }
   .brand span {
     background: linear-gradient(135deg, #2f6fed, #6aa6ff);
@@ -83,7 +83,7 @@
     <div class="brand">SI<span>DAP</span></div>
     <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}"><span class="nav-emoji">📊</span>Dashboard</a>
 
-    <div class="section-label">Permohonan</div>
+    <div class="section-label"; style;>Permohonan</div>
     <a href="{{ url_for('permohonan_list') }}" class="{{ 'active' if request.endpoint=='permohonan_list' }}"><span class="nav-emoji">📝</span>Semua Permohonan</a>
     <a href="{{ url_for('permohonan_kecamatan') }}" class="{{ 'active' if request.endpoint=='permohonan_kecamatan' }}"><span class="nav-emoji">📍</span>Kecamatan</a>
     <a href="{{ url_for('permohonan_periode') }}" class="{{ 'active' if request.endpoint=='permohonan_periode' }}"><span class="nav-emoji">📅</span>Tahun &amp; Bulan</a>
