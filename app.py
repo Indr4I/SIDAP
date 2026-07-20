@@ -136,17 +136,18 @@ VALID_STATUSES = ("SIB", "BK")
 PERMOHONAN_HEADER_MAP = {
     "no": "no",
     "nama pelanggan": "nama_pelanggan",
-    "lokasi": "lokasi",
+    "alamat": "lokasi",
     "kelurahan": "kelurahan",
     "kecamatan": "kecamatan",
-    "jenis": "jenis",
+    "no. spk": "no_spk",
+    "no spk": "no_spk",
+    "ke perencana": "tanggal_permohonan",
     "tanggal permohonan": "tanggal_permohonan",
+    "survey": "tanggal_survey",
     "tanggal survey": "tanggal_survey",
+    "kembali ke hublang": "tanggal_kembali_hublang",
     "petugas survey": "petugas_survey",
-    "ditindaklanjuti": "ditindaklanjuti",
-    "jenis pipa": "jenis_pipa",
-    "tanggal dikirim hublang": "tanggal_dikirim_hublang",
-    "tanggal kembali hublang": "tanggal_kembali_hublang",
+    "petugas": "petugas_survey",
     "keterangan": "keterangan",
 }
 PERMOHONAN_REQUIRED = ["nama_pelanggan", "kecamatan", "jenis", "tanggal_permohonan"]
@@ -370,83 +371,99 @@ def parse_upload(fileobj, db):
 def generate_permohonan_template_workbook():
     wb = Workbook()
     ws = wb.active
-    ws.title = "Data Permohonan"
+    ws.title = "Permohonan Masuk"
 
-    headers = [
-        "No", "Nama Pelanggan", "Lokasi", "Kelurahan", "Kecamatan",
-        "Jenis", "Tanggal Permohonan", "Tanggal Survey", "Petugas Survey",
-        "Ditindaklanjuti", "Jenis Pipa", "Tanggal Dikirim Hublang",
-        "Tanggal Kembali Hublang", "Keterangan",
-    ]
+    # 1. Judul Atas Laporan (Baris 2)
+    ws.merge_cells("C2:M2")
+    title_cell = ws["C2"]
+    title_cell.value = "LAPORAN PERMOHONAN MASUK / BUKA KEMBALI DARI HUBUNGAN LANGGANAN"
+    title_cell.font = Font(name="Calibri", bold=True, size=12, color="000000")
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
-    header_fill = PatternFill("solid", start_color="14203A", end_color="14203A")
-    body_font = Font(name="Arial", size=10)
-    thin = Side(style="thin", color="D7DAE0")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    # 2. Struktur Double Header (Baris 4 & 5)
+    # Kolom yang tidak pecah akan kita gabung secara vertikal (Row 4 & 5)
+    merge_vertikals = ["A4:A5", "B4:B5", "C4:C5", "D4:D5", "E4:E5", "F4:F5", "K4:K5", "L4:L5"]
+    for mv in merge_vertikals:
+        ws.merge_cells(mv)
 
-    for col, h in enumerate(headers, start=1):
-        c = ws.cell(row=1, column=col, value=h)
-        c.font = header_font
-        c.fill = header_fill
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border = border
-    ws.row_dimensions[1].height = 30
+    # Gabungan horizontal untuk sub-header Tanggal
+    ws.merge_cells("G4:I4") 
 
-    widths = [6, 22, 24, 16, 16, 10, 14, 14, 16, 14, 14, 16, 16, 24]
-    for i, w in enumerate(widths, start=1):
-        ws.column_dimensions[get_column_letter(i)].width = w
+    # Isikan nilai teks header sesuai gambar
+    ws["A4"] = "No"
+    ws["B4"] = "Nama Pelanggan"
+    ws["C4"] = "Alamat"
+    ws["D4"] = "Kelurahan"
+    ws["E4"] = "Kecamatan"
+    ws["F4"] = "No.\nSPK"
+    
+    ws["G4"] = "Tanggal Permohonan Masuk"
+    ws["G5"] = "Ke Perencana"
+    ws["H5"] = "Survey"
+    ws["I5"] = "Kembali Ke\nHublang"
+    
+    ws["J4"] = "Petugas"
+    ws["J5"] = "Survey"
+    
+    ws["K4"] = "Keterangan"
 
-    example = [
-        1, "Contoh Nama Pelanggan", "Jl. Contoh No.1", "Contoh Kelurahan",
-        "Contoh Kecamatan", "SIB", "2026-01-15", "2026-01-18", "Petugas A",
-        "Belum", "P.Dinas", "2026-01-20", "2026-01-25",
-        "Catatan khusus jika ada",
-    ]
-    for col, val in enumerate(example, start=1):
-        c = ws.cell(row=2, column=col, value=val)
-        c.font = body_font
-        c.border = border
+    # 3. Styling Header (Warna Biru Muda khas Excel Dinas)
+    header_fill = PatternFill("solid", start_color="B4C6E7", end_color="B4C6E7")
+    header_font = Font(name="Calibri", bold=True, color="000000", size=11)
+    thin_border = Border(
+        left=Side(style="thin", color="000000"),
+        right=Side(style="thin", color="000000"),
+        top=Side(style="thin", color="000000"),
+        bottom=Side(style="thin", color="000000")
+    )
 
-    for r in range(2, 202):
-        for col in range(1, len(headers) + 1):
-            ws.cell(row=r, column=col).border = border
-            ws.cell(row=r, column=col).font = body_font
-    for r in range(2, 202):
+    # Terapkan gaya ke seluruh sel di baris 4 dan 5 (Kolom A sampai K)
+    for r in (4, 5):
+        ws.row_dimensions[r].height = 24
+        for col in range(1, 12):
+            cell = ws.cell(row=r, column=col)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = thin_border
+
+    # 4. Lebar Kolom yang Sesuai Dimensi Gambar
+    widths = {
+        'A': 5,   # No
+        'B': 25,  # Nama Pelanggan
+        'C': 35,  # Alamat
+        'D': 16,  # Kelurahan
+        'E': 16,  # Kecamatan
+        'F': 8,   # No SPK
+        'G': 14,  # Ke Perencana
+        'H': 14,  # Survey
+        'I': 14,  # Kembali Ke Hublang
+        'J': 14,  # Petugas Survey
+        'K': 25   # Keterangan
+    }
+    for col_letter, w in widths.items():
+        ws.column_dimensions[col_letter].width = w
+
+    # 5. Siapkan Baris Kosong Bergrid untuk Pengisian User (Baris 6 sampai 200)
+    body_font = Font(name="Calibri", size=11)
+    for r in range(6, 201):
+        ws.row_dimensions[r].height = 20
+        # Format kolom Tanggal agar otomatis rapi saat diisi user
         ws.cell(row=r, column=7).number_format = "DD-MM-YYYY"
         ws.cell(row=r, column=8).number_format = "DD-MM-YYYY"
-        ws.cell(row=r, column=12).number_format = "DD-MM-YYYY"
-        ws.cell(row=r, column=13).number_format = "DD-MM-YYYY"
+        ws.cell(row=r, column=9).number_format = "DD-MM-YYYY"
+        
+        for col in range(1, 12):
+            c = ws.cell(row=r, column=col)
+            c.font = body_font
+            c.border = thin_border
 
-    dv_jenis = DataValidation(type="list", formula1='"SIB,BK"', allow_blank=True)
-    dv_ditindaklanjuti = DataValidation(type="list", formula1='"Belum,Ya,Tidak"', allow_blank=True)
-    dv_pipa = DataValidation(type="list", formula1='"P.Dinas,P.Distribusi"', allow_blank=True)
-    ws.add_data_validation(dv_jenis)
-    ws.add_data_validation(dv_ditindaklanjuti)
-    ws.add_data_validation(dv_pipa)
-    dv_jenis.add("F2:F201")
-    dv_ditindaklanjuti.add("J2:J201")
-    dv_pipa.add("K2:K201")
-    ws.freeze_panes = "A2"
+    # Contoh data baris pertama (Baris 6)
+    example = [1, "nama", "nama jalan", "kelurahan", "kecamatan", "", "2026-06-02", "2026-06-02", "", "nama petugas", "Keterangan berkas"]
+    for col, val in enumerate(example, start=1):
+        ws.cell(row=6, column=col, value=val)
 
-    notes = wb.create_sheet("Catatan Pengisian")
-    rows = [
-        ("Kolom", "Catatan"),
-        ("Nama Pelanggan", "Nama lengkap pelanggan atau pemohon permohonan."),
-        ("Kecamatan", "Kecamatan wajib diisi dan harus sesuai data wilayah."),
-        ("Jenis", "Pilih SIB atau BK."),
-        ("Tanggal Permohonan", "Gunakan format tanggal. Jika cell berubah format jadi teks, edit ulang.") ,
-        ("Ditindaklanjuti", "Isi Belum / Ya / Tidak. Biarkan kosong untuk Belum."),
-        ("Jenis Pipa", "P.Dinas atau P.Distribusi jika diketahui. Boleh dikosongkan."),
-    ]
-    for r, (a, b) in enumerate(rows, start=1):
-        notes.cell(row=r, column=1, value=a).font = Font(bold=(r == 1))
-        cb = notes.cell(row=r, column=2, value=b)
-        cb.font = Font(bold=(r == 1))
-        cb.alignment = Alignment(wrap_text=True, vertical="top")
-    notes.column_dimensions["A"].width = 20
-    notes.column_dimensions["B"].width = 80
-
+    ws.freeze_panes = "A6"
     return wb
 
 
@@ -456,21 +473,29 @@ def parse_permohonan_upload(fileobj, db):
         raise ValueError("File Excel ini kosong, tidak ada sheet sama sekali.")
     ws = wb.worksheets[0]
 
-    header_row = [c.value for c in ws[1]]
+    # Gabungkan teks baris 4 dan baris 5 agar sub-header seperti "Ke Perencana" terbaca sempurna
     col_index = {}
-    for idx, h in enumerate(header_row):
-        if h is None:
-            continue
-        key = PERMOHONAN_HEADER_MAP.get(str(h).strip().lower())
-        if key:
-            col_index[key] = idx
+    max_cols = ws.max_column
+    
+    for col_idx in range(1, max_cols + 1):
+        val_r4 = str(ws.cell(row=4, column=col_idx).value or "").strip().lower()
+        val_r5 = str(ws.cell(row=5, column=col_idx).value or "").strip().lower()
+        combined_header = f"{val_r4} {val_r5}".strip()
 
-    missing = [k for k in PERMOHONAN_REQUIRED if k not in col_index]
+        # Cek ke mapping
+        for raw_key, field_name in PERMOHONAN_HEADER_MAP.items():
+            if raw_key in val_r4 or raw_key in val_r5 or raw_key in combined_header:
+                if field_name not in col_index:
+                    col_index[field_name] = col_idx - 1  # 0-based index
+
+    # Validasi kolom wajib
+    missing = [k for k in ["nama_pelanggan", "kecamatan", "tanggal_permohonan"] if k not in col_index]
     if missing:
-        raise ValueError(f"Kolom wajib tidak ditemukan di header: {', '.join(missing)}")
+        raise ValueError(f"Kolom wajib tidak ditemukan di header file Excel. Mohon pastikan memakai template terbaru SIDAP.")
 
     rows = []
-    for row_cells in ws.iter_rows(min_row=2, values_only=False):
+    # Data dimulai dari baris ke-6
+    for row_cells in ws.iter_rows(min_row=6, values_only=False):
         values = {}
         for key, idx in col_index.items():
             values[key] = row_cells[idx].value if idx < len(row_cells) else None
@@ -479,17 +504,19 @@ def parse_permohonan_upload(fileobj, db):
         lokasi = str(values.get("lokasi") or "").strip()
         kelurahan = str(values.get("kelurahan") or "").strip()
         kecamatan = str(values.get("kecamatan") or "").strip()
-        jenis = str(values.get("jenis") or "").strip().upper()
+        
+        # Tentukan jenis dari nama sheet/tab
+        sheet_title = ws.title.lower()
+        jenis = "BK" if "buka kembali" in sheet_title else "SIB"
+        
         tanggal_permohonan, tanggal_permohonan_error = parse_tanggal(values.get("tanggal_permohonan"))
         tanggal_survey, tanggal_survey_error = parse_tanggal(values.get("tanggal_survey"))
         petugas_survey = str(values.get("petugas_survey") or "").strip()
-        ditindaklanjuti_raw = str(values.get("ditindaklanjuti") or "").strip()
-        jenis_pipa = str(values.get("jenis_pipa") or "").strip()
-        tanggal_dikirim_hublang, tanggal_dikirim_error = parse_tanggal(values.get("tanggal_dikirim_hublang"))
         tanggal_kembali_hublang, tanggal_kembali_error = parse_tanggal(values.get("tanggal_kembali_hublang"))
         keterangan = str(values.get("keterangan") or "").strip()
 
-        if not any([nama_pelanggan, lokasi, kelurahan, kecamatan, jenis, values.get("tanggal_permohonan")]):
+        # Abaikan baris kosong
+        if not any([nama_pelanggan, lokasi, kecamatan, values.get("tanggal_permohonan")]):
             continue
 
         row_errors = []
@@ -497,26 +524,21 @@ def parse_permohonan_upload(fileobj, db):
             row_errors.append("Nama pelanggan kosong")
         if not kecamatan:
             row_errors.append("Kecamatan kosong")
-        if jenis not in VALID_STATUSES:
-            row_errors.append(f"Jenis '{jenis}' tidak valid (harus SIB atau BK)")
         if tanggal_permohonan_error:
-            row_errors.append(tanggal_permohonan_error)
+            row_errors.append(f"Ke Perencana: {tanggal_permohonan_error}")
         elif not tanggal_permohonan:
-            row_errors.append("Tanggal permohonan kosong")
+            row_errors.append("Tanggal permohonan (Ke Perencana) kosong")
         if tanggal_survey_error:
-            row_errors.append(tanggal_survey_error)
-        if tanggal_dikirim_error:
-            row_errors.append(tanggal_dikirim_error)
+            row_errors.append(f"Tanggal survey: {tanggal_survey_error}")
         if tanggal_kembali_error:
-            row_errors.append(tanggal_kembali_error)
-        if jenis_pipa and jenis_pipa not in PERMOHONAN_PIPA_TYPES:
-            row_errors.append(f"Jenis pipa '{jenis_pipa}' tidak valid")
+            row_errors.append(f"Kembali ke Hublang: {tanggal_kembali_error}")
 
-        ditindaklanjuti_key = ditindaklanjuti_raw.lower()
-        valid_ditindaklanjuti_keys = set(PERMOHONAN_DITINDAKLANJUTI)
-        if ditindaklanjuti_raw and ditindaklanjuti_key not in valid_ditindaklanjuti_keys:
-            row_errors.append(f"Ditindaklanjuti '{ditindaklanjuti_raw}' tidak valid (Belum / Ya / Tidak)")
-        ditindaklanjuti = PERMOHONAN_DITINDAKLANJUTI.get(ditindaklanjuti_key)
+        # Status ditindaklanjuti otomatis
+        ditindaklanjuti = None
+        if tanggal_survey:
+            ditindaklanjuti = 1
+        if "selisih" in keterangan.lower() or tanggal_kembali_hublang:
+            ditindaklanjuti = 0
 
         rows.append({
             "nama_pelanggan": nama_pelanggan,
@@ -528,9 +550,8 @@ def parse_permohonan_upload(fileobj, db):
             "tanggal_survey": tanggal_survey or "",
             "petugas_survey": petugas_survey,
             "ditindaklanjuti": ditindaklanjuti,
-            "ditindaklanjuti_display": ditindaklanjuti_raw or "Belum",
-            "jenis_pipa": jenis_pipa,
-            "tanggal_dikirim_hublang": tanggal_dikirim_hublang or "",
+            "jenis_pipa": "P.Distribusi" if "distribusi" in keterangan.lower() else "P.Dinas",
+            "tanggal_dikirim_hublang": "",
             "tanggal_kembali_hublang": tanggal_kembali_hublang or "",
             "keterangan": keterangan,
             "errors": row_errors,
@@ -797,35 +818,61 @@ def permohonan_impor_konfirmasi():
 
     with open(path, encoding="utf-8") as f:
         rows = json.load(f)
-    os.remove(path)
+    
+    if os.path.exists(path):
+        os.remove(path)
 
-    valid_rows = [r for r in rows if not r["errors"]]
+    valid_rows = [r for r in rows if not r.get("errors")]
     if not valid_rows:
         flash("Tidak ada baris valid yang bisa disimpan -- semua baris punya error.", "error")
         return redirect(url_for("permohonan_impor"))
 
     db = get_db()
+    
+    # 1. Pastikan kolom no_spk ada di tabel permohonan (Auto-Migration sederhana)
+    try:
+        db.execute("ALTER TABLE permohonan ADD COLUMN no_spk TEXT")
+        db.commit()
+    except sqlite3.OperationalError:
+        pass  # Abaikan jika kolom no_spk sudah ada sebelumnya
+
+    # 2. Ambil nilai No. SPK terbesar saat ini untuk Auto-Increment
+    max_spk_row = db.execute("SELECT MAX(CAST(no_spk AS INTEGER)) m FROM permohonan").fetchone()
+    current_spk = int(max_spk_row["m"]) if max_spk_row and max_spk_row["m"] else 0
+
     tersimpan = 0
     for r in valid_rows:
+        current_spk += 1
+        
         db.execute(
             """INSERT INTO permohonan
-               (nama_pelanggan, lokasi, kelurahan, kecamatan, jenis, tanggal_permohonan,
+               (nama_pelanggan, lokasi, kelurahan, kecamatan, jenis, no_spk, tanggal_permohonan,
                 tanggal_survey, petugas_survey, ditindaklanjuti, jenis_pipa,
                 tanggal_dikirim_hublang, tanggal_kembali_hublang, keterangan)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
-                r["nama_pelanggan"], r["lokasi"], r["kelurahan"], r["kecamatan"], r["jenis"],
-                r["tanggal_permohonan"], r["tanggal_survey"] or None,
-                r["petugas_survey"] or None, r["ditindaklanjuti"], r["jenis_pipa"] or None,
-                r["tanggal_dikirim_hublang"] or None, r["tanggal_kembali_hublang"] or None,
-                r["keterangan"],
+                r.get("nama_pelanggan", ""),
+                r.get("lokasi", ""),
+                r.get("kelurahan", ""),
+                r.get("kecamatan", ""),
+                r.get("jenis", "SIB"),
+                str(current_spk),
+                r.get("tanggal_permohonan", ""),
+                r.get("tanggal_survey") or None,
+                r.get("petugas_survey") or None,
+                r.get("ditindaklanjuti"),
+                r.get("jenis_pipa") or None,
+                r.get("tanggal_dikirim_hublang") or None,
+                r.get("tanggal_kembali_hublang") or None,
+                r.get("keterangan", ""),
             ),
         )
         tersimpan += 1
+        
     db.commit()
 
     dilewati = len(rows) - tersimpan
-    pesan = f"{tersimpan} baris permohonan berhasil diimpor."
+    pesan = f"{tersimpan} baris permohonan berhasil diimpor dengan No. SPK otomatis."
     if dilewati:
         pesan += f" {dilewati} baris dilewati karena ada error."
     flash(pesan)
@@ -1564,6 +1611,7 @@ def permohonan_list():
 
     ringkas = {
         "menunggu": db.execute("SELECT COUNT(*) c FROM permohonan WHERE ditindaklanjuti IS NULL").fetchone()["c"],
+        "ditindaklanjuti": db.execute("SELECT COUNT(*) c FROM permohonan WHERE ditindaklanjuti = 1 AND instalasi_id IS NULL").fetchone()["c"],
         "selisih": db.execute("SELECT COUNT(*) c FROM permohonan WHERE ditindaklanjuti = 0").fetchone()["c"],
         "selesai": db.execute("SELECT COUNT(*) c FROM permohonan WHERE instalasi_id IS NOT NULL").fetchone()["c"],
     }
