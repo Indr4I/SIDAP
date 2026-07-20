@@ -47,11 +47,12 @@
 <table class="table table-sm table-bordered mb-0">
   <thead>
     <tr>
+      <th>No</th>
       <th>Nama</th>
       <th>Alamat</th>
       <th>Kelurahan</th>
       <th>Kecamatan</th>
-      <th>Status</th> <!-- Kolom Baru -->
+      <th>Status</th>
       <th>Tgl Pasang Terakhir</th>
       <th>Jml. Instalasi</th>
       <th class="no-print"></th>
@@ -112,10 +113,10 @@ document.addEventListener("DOMContentLoaded", function() {
     let currentPage = 1;
     let kecamatanLoaded = false;
     
-    // Tangkap parameter tahun & bulan jika user datang dari klik link periode tertentu
     const urlParams = new URLSearchParams(window.location.search);
     let filterTahun = urlParams.get('tahun') || '';
     let filterBulan = urlParams.get('bulan') || '';
+    let filterKecamatanUrl = urlParams.get('kecamatan') || '';
 
     const formFilter = document.getElementById('form-filter');
     const tbody = document.getElementById('tabel-pelanggan');
@@ -148,7 +149,9 @@ document.addEventListener("DOMContentLoaded", function() {
         tbody.innerHTML = '<tr><td colspan="8" class="text-secondary text-center py-3">Sedang mengambil data terbaru...</td></tr>';
         
         const q = document.getElementById('filter-q').value.trim();
-        const kec = selectKecamatan.value;
+        let kec = selectKecamatan.value;
+        if (filterKecamatanUrl && selectKecamatan.value === 'semua') {
+            kec = filterKecamatanUrl;}
         const status = document.getElementById('filter-status').value;
         const exportUrl = `/pelanggan/export?page=${currentPage}&q=${encodeURIComponent(q)}&kecamatan=${kec}&status=${status}&tahun=${filterTahun}&bulan=${filterBulan}`;
         if (btnExportXlsx) {
@@ -172,6 +175,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         opt.innerText = k;
                         selectKecamatan.appendChild(opt);
                     });
+                    if (filterKecamatanUrl) {
+                        selectKecamatan.value = filterKecamatanUrl;}
                     kecamatanLoaded = true;
                 }
 
@@ -203,9 +208,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     paginationContainer.style.display = 'none';
                     return;
                 }
-
+                let no = (currentPage - 1) * 30 + 1;
+                
                 data.rows.forEach(r => {
-                    // 1. Pecah string status (contoh: "SIB,BK") menjadi array badge HTML
                     let statusBadges = '';
                     if (r.semua_status) {
                         const statusArray = r.semua_status.split(',');
@@ -217,20 +222,22 @@ document.addEventListener("DOMContentLoaded", function() {
                         statusBadges = '<span class="text-muted">—</span>';
                     }
 
-                    // 2. Masukkan baris baru ke dalam tabel pelanggan
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
+                        <td>${no}</td>
                         <td><a href="/pelanggan/${r.pelanggan_id}" class="text-decoration-none">${r.nama}</a></td>
                         <td>${r.alamat || ''}</td>
                         <td>${r.kelurahan || ''}</td>
                         <td>${r.kecamatan}</td>
-                        <td>${statusBadges}</td> <!-- Merender Badge Status -->
+                        <td>${statusBadges}</td>
                         <td>${r.tanggal_terbaru || "—"}</td>
                         <td>${r.jumlah_instalasi}</td>
                         <td class="no-print"><a href="/pelanggan/${r.pelanggan_id}" class="btn btn-sm btn-outline-secondary py-0">Detail</a></td>
                     `;
                     tbody.appendChild(tr);
-                });
+
+                      no++; // Menambah +1 untuk baris pelanggan berikutnya
+                  });
 
                 // 5. Render struktur navigasi nomor halaman (Pagination) ala v0.5
                 paginationList.innerHTML = '';
