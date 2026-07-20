@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Detail Pelanggan{% endblock %}
+{% block print_header %}
+<div style="display:flex; align-items:center; gap:12px;">
+  <div style="flex:0 0 80px;">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" style="max-height:60px; max-width:80px;" onerror="this.style.display='none'">
+  </div>
+  <div style="flex:1; text-align:center; font-size:12px;">
+    <div style="font-weight:800; font-size:14px;">DETAIL PELANGGAN</div>
+    <div style="margin-top:4px; font-weight:600;">PELANGGAN: {{ pelanggan.nama }}</div>
+    {% if request.args.get('bulan') or request.args.get('tahun') %}
+    <div style="margin-top:4px; font-size:11px;">BULAN : {{ request.args.get('bulan') or '-' }} {{ request.args.get('tahun') or '' }}</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
 {% block content %}
 <div class="no-print">
   <h4 class="fw-bold mb-1">{{ pelanggan.nama }}</h4>
@@ -14,22 +28,6 @@
     <button onclick="window.print()" class="btn btn-sm btn-dark">Cetak</button>
   </div>
 </div>
-{% block print_header %}
-<div class="print-only print-header" style="display:none;">
-<div style="display:flex; align-items:center; gap:12px;">
-  <div style="flex:0 0 80px;">
-    <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" style="max-height:60px; max-width:80px;" onerror="this.style.display='none'">
-  </div>
-  <div style="flex:1; text-align:center; font-size:12px;">
-    <div style="font-weight:800; font-size:14px;">DETAIL PELANGGAN</div>
-    <div style="margin-top:4px; font-weight:600;">PELANGGAN: {{ pelanggan.nama }}</div>
-    {% if request.args.get('bulan') or request.args.get('tahun') %}
-    <div style="margin-top:4px; font-size:11px;">BULAN : {{ request.args.get('bulan') or '-' }} {{ request.args.get('tahun') or '' }}</div>
-    {% endif %}
-  </div>
-</div>
-</div>
-{% endblock %}
 
 <div class="bg-white p-3 rounded">
   <div class="fw-bold mb-2" style="font-size:14px">Instalasi ({{ instalasi|length }})</div>
