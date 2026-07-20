@@ -32,10 +32,10 @@
 <div class="bg-white p-3 rounded">
   <div class="fw-bold mb-2" style="font-size:14px">Instalasi ({{ instalasi|length }})</div>
   <table class="table table-sm table-bordered">
-    <tr><th>No. Instalasi</th><th>Tgl Pasang</th><th>&#216;</th><th>Tek</th><th>Status</th><th>Petugas</th><th class="no-print"></th></tr>
+    <tr><th>No. Instalasi</th><th>Alamat</th><th>Tgl Pasang</th><th>&#216;</th><th>Tek</th><th>Status</th><th>Petugas</th><th class="no-print"></th></tr>
     {% for i in instalasi %}
     <tr>
-      <td>{{ i.nomor_instalasi }}</td><td>{{ i.tanggal_pasang }}</td><td>{{ i.diameter_pipa }}</td><td>{{ i.tekanan_air }}</td>
+      <td>{{ i.nomor_instalasi }}</td><td>{{pelanggan.alamat}}</td><td>{{ i.tanggal_pasang }}</td><td>{{ i.diameter_pipa }}</td><td>{{ i.tekanan_air }}</td>
       <td><span class="badge {{ 'badge-sib' if i.status=='SIB' else 'badge-bk' }}">{{ i.status }}</span></td>
       <td>{{ i.petugas or "—" }}</td>
       <td class="no-print"><a href="{{ url_for('instalasi_edit', iid=i.id) }}" class="btn btn-sm btn-outline-secondary py-0">Edit</a></td>
