@@ -82,7 +82,6 @@
   <div class="sidebar flex-shrink-0">
     <div class="brand">SI<span>DAP</span></div>
     <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}"><span class="nav-emoji">📊</span>Dashboard</a>
-
     <div class="section-label"; style;>Permohonan</div>
     <a href="{{ url_for('permohonan_list') }}" class="{{ 'active' if request.endpoint=='permohonan_list' }}"><span class="nav-emoji">📝</span>Semua Permohonan</a>
     <a href="{{ url_for('permohonan_kecamatan') }}" class="{{ 'active' if request.endpoint=='permohonan_kecamatan' }}"><span class="nav-emoji">📍</span>Kecamatan</a>
