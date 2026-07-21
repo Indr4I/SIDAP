@@ -1495,6 +1495,7 @@ def laporan_bulanan():
 @app.route("/laporan/unduh")
 def laporan_unduh_xlsx():
     import io
+    from datetime import datetime
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from flask import send_file
@@ -1503,7 +1504,6 @@ def laporan_unduh_xlsx():
     tahun = request.args.get("tahun", "").strip()
     bulan = request.args.get("bulan", "").strip()
     
-    # 1. Ambil data rekap
     rows, total_sib, total_bk = hitung_rekap_bulanan(db, tahun, bulan)
     nama_bulan = NAMA_BULAN[int(bulan) - 1] if bulan else ""
 
@@ -1511,22 +1511,22 @@ def laporan_unduh_xlsx():
     ws = wb.active
     ws.title = "Laporan Bulanan"
 
-    # Define Styling
+    # Styling Font & Alignments
     font_title = Font(name="Calibri", bold=True, size=12)
     font_sub = Font(name="Calibri", bold=True, size=10)
     font_header = Font(name="Calibri", bold=True, size=10)
     font_body = Font(name="Calibri", size=10)
     font_bold = Font(name="Calibri", bold=True, size=10)
+    font_underline = Font(name="Calibri", bold=True, size=10, underline="single")
 
     fill_header = PatternFill("solid", start_color="F2F2F2", end_color="F2F2F2")
     align_center = Alignment(horizontal="center", vertical="center")
     align_left = Alignment(horizontal="left", vertical="center")
-    align_right = Alignment(horizontal="right", vertical="center")
 
     thin_side = Side(style="thin", color="000000")
     border_all = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
 
-    # 2. Baris Judul Laporan (Merge A1:E1 dan A2:E2)
+    # 1. Judul Laporan
     ws.merge_cells("A1:E1")
     ws["A1"] = "LAPORAN BULANAN"
     ws["A1"].font = font_title
@@ -1537,9 +1537,7 @@ def laporan_unduh_xlsx():
     ws["A2"].font = font_sub
     ws["A2"].alignment = align_center
 
-    # Baris 3 kosong untuk jarak
-
-    # 3. Header Tabel (Baris 4)
+    # 2. Header Tabel (Baris 4)
     headers = ["NO", "KECAMATAN", "SIB", "BK", "JUMLAH"]
     for col_idx, h in enumerate(headers, start=1):
         cell = ws.cell(row=4, column=col_idx, value=h)
@@ -1549,30 +1547,15 @@ def laporan_unduh_xlsx():
         cell.border = border_all
     ws.row_dimensions[4].height = 24
 
-    # 4. Isi Data Kecamatan (Baris 5 dst)
+    # 3. Isi Data Kecamatan
     current_row = 5
     for idx, r in enumerate(rows, start=1):
-        # Kolom 1: NO
-        c_no = ws.cell(row=current_row, column=1, value=idx)
-        c_no.alignment = align_center
-        
-        # Kolom 2: KECAMATAN
-        c_kec = ws.cell(row=current_row, column=2, value=r["kecamatan"].upper())
-        c_kec.alignment = align_left
-        
-        # Kolom 3: SIB
-        c_sib = ws.cell(row=current_row, column=3, value=r["sib"] if r["sib"] > 0 else "-")
-        c_sib.alignment = align_center
-        
-        # Kolom 4: BK
-        c_bk = ws.cell(row=current_row, column=4, value=r["bk"] if r["bk"] > 0 else "-")
-        c_bk.alignment = align_center
-        
-        # Kolom 5: JUMLAH
-        c_jml = ws.cell(row=current_row, column=5, value=r["jumlah"])
-        c_jml.alignment = align_center
+        ws.cell(row=current_row, column=1, value=idx).alignment = align_center
+        ws.cell(row=current_row, column=2, value=r["kecamatan"].upper()).alignment = align_left
+        ws.cell(row=current_row, column=3, value=r["sib"] if r["sib"] > 0 else "-").alignment = align_center
+        ws.cell(row=current_row, column=4, value=r["bk"] if r["bk"] > 0 else "-").alignment = align_center
+        ws.cell(row=current_row, column=5, value=r["jumlah"]).alignment = align_center
 
-        # Terapkan font & border untuk semua sel di baris ini
         for col_idx in range(1, 6):
             cell = ws.cell(row=current_row, column=col_idx)
             cell.font = font_body
@@ -1581,7 +1564,7 @@ def laporan_unduh_xlsx():
         ws.row_dimensions[current_row].height = 20
         current_row += 1
 
-    # 5. Baris Total Paling Bawah
+    # 4. Baris Total
     ws.merge_cells(f"A{current_row}:B{current_row}")
     ws.cell(row=current_row, column=1, value="JUMLAH").alignment = align_center
     ws.cell(row=current_row, column=3, value=total_sib).alignment = align_center
@@ -1595,18 +1578,46 @@ def laporan_unduh_xlsx():
 
     ws.row_dimensions[current_row].height = 22
 
+    # =========================================================
+    # 5. FOOTER TANDA TANGAN DI EXCEL LAPORAN BULANAN
+    # =========================================================
+    r_ttd = current_row + 3  # Jarak 3 baris di bawah tabel
+    
+    # Sisi Kiri
+    ws.cell(row=r_ttd, column=2, value="Diperiksa Oleh :").font = font_body
+    ws.cell(row=r_ttd + 1, column=2, value="Kabag Perencana & Supervisi").font = font_bold
+    
+    c_nama_kiri = ws.cell(row=r_ttd + 5, column=2, value="NAMA")
+    c_nama_kiri.font = font_underline
+
+    # Sisi Kanan
+    tgl_hari_ini = datetime.now().strftime("%d %B %Y")
+    
+    ws.merge_cells(start_row=r_ttd - 1, start_column=4, end_row=r_ttd - 1, end_column=5)
+    c_tgl = ws.cell(row=r_ttd - 1, column=4, value=f"Pematangsiantar, {tgl_hari_ini}")
+    c_tgl.alignment = align_center
+    c_tgl.font = font_body
+
+    ws.merge_cells(start_row=r_ttd, start_column=4, end_row=r_ttd, end_column=5)
+    c_ket_k = ws.cell(row=r_ttd, column=4, value="Diperbuat Oleh :")
+    c_ket_k.alignment = align_center
+    c_ket_k.font = font_body
+
+    ws.merge_cells(start_row=r_ttd + 1, start_column=4, end_row=r_ttd + 1, end_column=5)
+    c_jab_k = ws.cell(row=r_ttd + 1, column=4, value="Kasubbag Perencana Jaringan")
+    c_jab_k.alignment = align_center
+    c_jab_k.font = font_bold
+
+    ws.merge_cells(start_row=r_ttd + 5, start_column=4, end_row=r_ttd + 5, end_column=5)
+    c_nama_kanan = ws.cell(row=r_ttd + 5, column=4, value="NAMA")
+    c_nama_kanan.alignment = align_center
+    c_nama_kanan.font = font_underline
+
     # 6. Atur Lebar Kolom
-    col_widths = {
-        'A': 8,   # NO
-        'B': 25,  # KECAMATAN
-        'C': 15,  # SIB
-        'D': 15,  # BK
-        'E': 15   # JUMLAH
-    }
+    col_widths = {'A': 8, 'B': 25, 'C': 15, 'D': 15, 'E': 15}
     for col_letter, width in col_widths.items():
         ws.column_dimensions[col_letter].width = width
 
-    # 7. Simpan file ke BytesIO
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
@@ -2212,7 +2223,7 @@ def permohonan_laporan_teknis_unduh():
     ws.cell(row=r_ttd + 1, column=2, value="Kabag Perencana & Supervisi").font = font_bold
     
     # Nama Kiri (Bergaris Bawah / Underline)
-    c_nama_kiri = ws.cell(row=r_ttd + 5, column=2, value="JIMMI M. SIMATUPANG. ST")
+    c_nama_kiri = ws.cell(row=r_ttd + 5, column=2, value="NAMA")
     c_nama_kiri.font = font_underline
 
     # --- SISI KANAN ---
@@ -2240,7 +2251,7 @@ def permohonan_laporan_teknis_unduh():
 
     # Nama Kanan (Bergaris Bawah / Underline)
     ws.merge_cells(start_row=r_ttd + 5, start_column=col_kanan_start, end_row=r_ttd + 5, end_column=col_kanan_end)
-    c_nama_kanan = ws.cell(row=r_ttd + 5, column=col_kanan_start, value="SUHAERI")
+    c_nama_kanan = ws.cell(row=r_ttd + 5, column=col_kanan_start, value="NAMA")
     c_nama_kanan.alignment = align_center
     c_nama_kanan.font = font_underline
 
