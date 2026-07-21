@@ -62,69 +62,93 @@
 </div>
 
 
-<div id="area-cetak" class="bg-white rounded" style="overflow-x:auto">
-<table class="table table-sm mb-0" style="font-size:12.5px">
-  <tr>
-    <th>No</th>
-    <th>Jenis</th>
-    <th>Nama Pelanggan</th>
-    <th>Alamat</th>
-    <th>Kelurahan</th>
-    <th>Kecamatan</th>
-    <th>No. SPK</th>
-    <th>Ke Perencana</th>
-    <th>Survey</th>
-    <th>Dikirim ke Hublang</th>
-    <th>Kembali ke Hublang</th>
-    <th>Petugas Survey</th>
-    <th>Status</th>
-    <th>Keterangan</th>
-    <th class="no-print"></th>
-  </tr>
-  {% for r in rows %}
-  <tr>
-    <td>{{ loop.index + (page-1)*15 }}</td>
-    <td><span class="badge {{ 'badge-sib' if r.jenis=='SIB' else 'badge-bk' }}">{{ r.jenis }}</span></td>
-    <td>{{ r.nama_pelanggan }}</td>
-    <td>{{ r.lokasi }}</td>
-    <td>{{ r.kelurahan }}</td>
-    <td>{{ r.kecamatan }}</td>
-    <td>{{ loop.index + (page-1)*15 }}</td>
-    <td>{{ r.tanggal_permohonan }}</td>
-    <td>{{ r.tanggal_survey or "—" }}</td>
-    <td>{{ r.tanggal_dikirim_hublang or "—" }}</td>
-    <td>{{ r.tanggal_kembali_hublang or "—" }}</td>
-    <td>{{ r.petugas_survey or "—" }}</td>
-    <td>
-      {% if r.instalasi_id %}
-        <span class="badge text-bg-success">Terpasang</span>
-      {% elif r.ditindaklanjuti == 1 %}
-        <span class="badge text-bg-info">Ditindaklanjuti</span>
-      {% elif r.ditindaklanjuti == 0 %}
-        <span class="badge text-bg-warning">Selisih</span>
-      {% else %}
-        <span class="badge text-bg-light">Menunggu</span>
-      {% endif %}
-    </td>
-    <td>{{ r.keterangan or "—" }}</td>
-    <td class="text-end text-nowrap no-print">
-      <a href="{{ url_for('permohonan_edit', pmid=r.id) }}" class="btn btn-sm btn-outline-secondary py-0">Edit</a>
-      {% if r.ditindaklanjuti == 1 and not r.instalasi_id %}
-      <a href="{{ url_for('permohonan_jadikan_instalasi', pmid=r.id) }}" class="btn btn-sm btn-dark py-0">Jadikan Instalasi</a>
-      {% endif %}
-      <form method="post" action="{{ url_for('permohonan_hapus', pmid=r.id) }}" class="d-inline"
-            onsubmit="return confirm('Hapus permohonan ini?{{ ' Instalasi yang sudah dibuat dari sini TIDAK ikut terhapus.' if r.instalasi_id else '' }}')">
-        <button type="submit" class="btn btn-sm btn-outline-danger py-0">Hapus</button>
-      </form>
-    </td>
-  </tr>
-  {% else %}
-  <tr><td colspan="15" class="text-secondary text-center py-3">Belum ada permohonan yang cocok filter ini.</td></tr>
-  {% endfor %}
+<div id="area-cetak" class="bg-white rounded border shadow-sm" style="overflow-x:auto">
+<table class="table table-hover align-middle mb-0 custom-compact-table">
+  <thead class="table-light">
+    <tr>
+      <th class="text-center" style="width: 35px">No</th>
+      <th class="text-center" style="width: 45px">Jenis</th>
+      <th>Nama Pelanggan</th>
+      <th>Alamat</th>
+      <th>Kel / Kec</th>
+      <th class="text-center" style="width: 55px">SPK</th>
+      <th class="text-center">Ke Perencana</th>
+      <th class="text-center">Survey</th>
+      <th class="text-center">Kirim Hublang</th>
+      <th class="text-center">Kembali Hublang</th>
+      <th>Petugas</th>
+      <th class="text-center">Status</th>
+      <th>Keterangan</th>
+      <th class="text-end no-print">Aksi</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="text-center text-secondary">{{ loop.index + (page-1)*30 }}</td>
+      <td class="text-center">
+        <span class="badge {{ 'badge-sib' if r.jenis=='SIB' else 'badge-bk' }}">{{ r.jenis }}</span>
+      </td>
+      <td class="fw-bold text-dark">{{ r.nama_pelanggan }}</td>
+      <td class="text-muted">{{ r.lokasi or "—" }}</td>
+      <td>
+        <div>{{ r.kelurahan or "—" }}</div>
+        <div class="text-secondary" style="font-size: 10px">{{ r.kecamatan or "—" }}</div>
+      </td>
+      <td class="text-center fw-bold text-primary">{{ r.no_spk or r.id }}</td>
+      <td class="text-center text-nowrap">{{ r.tanggal_permohonan or "—" }}</td>
+      <td class="text-center text-nowrap">{{ r.tanggal_survey or "—" }}</td>
+      <td class="text-center text-nowrap">{{ r.tanggal_dikirim_hublang or "—" }}</td>
+      <td class="text-center text-nowrap">{{ r.tanggal_kembali_hublang or "—" }}</td>
+      <td>{{ r.petugas_survey or "—" }}</td>
+      <td class="text-center">
+        {% if r.instalasi_id %}
+          <span class="badge text-bg-success">Terpasang</span>
+        {% elif r.ditindaklanjuti == 1 %}
+          <span class="badge text-bg-info">Ditindaklanjuti</span>
+        {% elif r.ditindaklanjuti == 0 %}
+          <span class="badge text-bg-warning">Selisih</span>
+        {% else %}
+          <span class="badge text-bg-light border">Menunggu</span>
+        {% endif %}
+      </td>
+      <td>{{ r.keterangan or "—" }}</td>
+      <td class="text-end text-nowrap no-print">
+        <a href="{{ url_for('permohonan_edit', pmid=r.id) }}" class="btn btn-sm btn-outline-primary fw-bold px-2 py-1">Edit</a>
+        {% if r.ditindaklanjuti == 1 and not r.instalasi_id %}
+        <a href="{{ url_for('permohonan_jadikan_instalasi', pmid=r.id) }}" class="btn btn-sm btn-dark fw-bold px-2 py-1">+ Instalasi</a>
+        {% endif %}
+        <form method="post" action="{{ url_for('permohonan_hapus', pmid=r.id) }}" class="d-inline"
+              onsubmit="return confirm('Hapus permohonan ini?')">
+          <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1">Hapus</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="14" class="text-secondary text-center py-3">Belum ada data permohonan.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
 </div>
 
 <style>
+.custom-compact-pelanggan {
+  font-size: 13.5px !important; /* Font diperbesar dari 11px ke 13.5px */
+}
+.custom-compact-pelanggan th {
+  font-weight: 700;
+  color: #1e293b;
+  padding: 10px 8px !important; /* Baris header lebih lapang */
+  vertical-align: middle;
+  white-space: nowrap;
+  background-color: #f1f5f9;
+}
+.custom-compact-pelanggan td {
+  padding: 9px 8px !important; /* Baris isi tabel lebih tebal & mudah dibaca */
+  vertical-align: middle;
+}
 .print-only { display: none; }
 .print-only { display: none; }
 @media print {

@@ -1,35 +1,68 @@
 {% extends "base.html" %}
 {% block title %}Kinerja Supervisi Teknik{% endblock %}
 {% block content %}
-<div class="no-print">
+
+<!-- Bagian Kontrol & Input (Otomatis Sembunyi Saat Cetak / PDF) -->
+<div class="no-print mb-4">
   <h4 class="fw-bold mb-1">Kinerja Supervisi Teknik/Gambar/Perhitungan</h4>
   <div class="text-secondary mb-3" style="font-size:13px">Rekap teknis per bulan &mdash; panjang pipa dan hasil pengiriman ke Hublang</div>
 
-  <form class="row g-2 mb-3">
-    <div class="col-3">
+  <!-- Form Filter Tahun & Bulan -->
+  <form class="row g-2 mb-3" style="max-width: 600px;">
+    <div class="col-md-5">
       <select class="form-select form-select-sm" name="tahun">
         {% for t in tahun_list %}
         <option value="{{ t }}" {{ 'selected' if t == tahun }}>{{ t }}</option>
         {% endfor %}
       </select>
     </div>
-    <div class="col-3">
+    <div class="col-md-5">
       <select class="form-select form-select-sm" name="bulan">
         {% for num, nama in nama_bulan_list %}
         <option value="{{ '%02d' % num }}" {{ 'selected' if ('%02d' % num) == bulan }}>{{ nama }}</option>
         {% endfor %}
       </select>
     </div>
-    <div class="col-3"><button class="btn btn-outline-secondary btn-sm w-100">Tampilkan</button></div>
+    <div class="col-md-2">
+      <button class="btn btn-outline-secondary btn-sm w-100">Tampilkan</button>
+    </div>
   </form>
 
-    <div class="d-flex gap-2 mb-3 align-items-center">
-      <button onclick="window.print()" class="btn btn-dark btn-sm">Cetak / simpan sebagai PDF</button>
-      <a href="{{ url_for('permohonan_laporan_teknis_unduh', tahun=tahun, bulan=bulan) }}" class="btn btn-outline-secondary btn-sm">Unduh sebagai .xlsx</a>
+  <!-- Card Input Tanda Tangan (Berada Di Atas, Tidak Bersebelahan) -->
+  <div class="card border-0 shadow-sm bg-light mb-3" style="max-width: 750px;">
+    <div class="card-body py-2 px-3">
+      <div class="fw-bold mb-2 text-dark" style="font-size:13px">Tanda Diketahui</div>
+      <div class="row g-2">
+        <!-- Kiri -->
+        <div class="col-md-6">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-keterangan-kiri" value="Diperiksa Oleh :" oninput="updateFooterTTD()" placeholder="Keterangan Kiri">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-jabatan-kiri" value="Kabag Perencana & Supervisi" oninput="updateFooterTTD()" placeholder="Jabatan Kiri">
+          <input type="text" class="form-control form-control-sm" id="input-nama-kiri" value="NAMA" oninput="updateFooterTTD()" placeholder="Nama Kiri">
+        </div>
+        <!-- Kanan -->
+        <div class="col-md-6">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-kota-tgl" value="Pematangsiantar, {{ today }}" oninput="updateFooterTTD()" placeholder="Kota & Tanggal">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-keterangan-kanan" value="Diperbuat Oleh :" oninput="updateFooterTTD()" placeholder="Keterangan Kanan">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-jabatan-kanan" value="Kasubbag Perencana Jaringan" oninput="updateFooterTTD()" placeholder="Jabatan Kanan">
+          <input type="text" class="form-control form-control-sm" id="input-nama-kanan" value="NAMA" oninput="updateFooterTTD()" placeholder="Nama Kanan">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tombol Aksi Cetak & Unduh -->
+  <div class="d-flex gap-2">
+    <button onclick="window.print()" class="btn btn-primary btn-sm fw-bold px-3">Cetak / simpan sebagai PDF</button>
+    <a href="{{ url_for('permohonan_laporan_teknis_unduh', tahun=tahun, bulan=bulan) }}" class="btn btn-outline-secondary btn-sm">Unduh sebagai .xlsx</a>
   </div>
 </div>
 
-<div class="stat-card" id="area-cetak" style="overflow-x:auto">
+<hr class="no-print my-4">
+
+<!-- AREA PRATINJAU / CETAK (Posisi Murni Di Bawah) -->
+<div class="stat-card bg-white p-4 rounded border shadow-sm" id="area-cetak" style="overflow-x:auto">
+  
+  <!-- Header Laporan -->
   <div class="text-center mb-3">
     <div style="flex:0 0 80px;">
       <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" style="max-height:60px; max-width:80px;" onerror="this.style.display='none'">
@@ -38,32 +71,33 @@
     <div style="font-size:12.5px">BULAN: {{ nama_bulan|upper }} {{ tahun }}</div>
   </div>
 
-<table class="table table-sm table-bordered mb-0" style="font-size:11px; min-width:1000px">
-    <tr class="text-center fw-bold">
-      <th rowspan="3">Jenis Permohonan</th>
+  <!-- Tabel Utama -->
+  <table class="table table-sm table-bordered mb-4" style="font-size:11px; min-width:1000px">
+    <tr class="text-center fw-bold bg-light">
+      <th rowspan="3" class="align-middle">Jenis Permohonan</th>
       <th colspan="2">Permohonan Masuk</th>
       <th colspan="4">Realisasi Gambar/Perhitungan</th>
       <th colspan="{{ daftar_keterangan|length + 1 }}">Keterangan (Dikirim ke Hublang)</th>
     </tr>
-    <tr class="text-center fw-bold">
-      <th rowspan="2">Dari Hublang</th>
-      <th rowspan="2">Ke Perencana</th>
-      <th rowspan="2">Disurvei</th>
+    <tr class="text-center fw-bold bg-light">
+      <th rowspan="2" class="align-middle">Dari Hublang</th>
+      <th rowspan="2" class="align-middle">Ke Perencana</th>
+      <th rowspan="2" class="align-middle">Disurvei</th>
       <th colspan="2">Panjang Pipa</th>
-      <th rowspan="2">Di Kirim ke Hublang</th>
+      <th rowspan="2" class="align-middle">Di Kirim ke Hublang</th>
       
       {% for ket in daftar_keterangan %}
-      <th rowspan="2">{{ ket }}</th>
+      <th rowspan="2" class="align-middle">{{ ket }}</th>
       {% endfor %}
       
-      <th rowspan="2">Jumlah</th>
+      <th rowspan="2" class="align-middle">Jumlah</th>
     </tr>
-    <tr class="text-center fw-bold">
+    <tr class="text-center fw-bold bg-light">
       <th>&le;10 Meter</th>
       <th>&gt;10m (P.Distribusi)</th>
     </tr>
 
-    <!-- Baris SIB -->
+    <!-- SIB -->
     <tr class="text-center">
       <td class="text-start">Sambungan Instalasi Baru (SIB)</td>
       <td>{{ hasil.SIB.dari_hublang or '-' }}</td>
@@ -80,7 +114,7 @@
       <td class="fw-bold">{{ hasil.SIB.jumlah_ket }}</td>
     </tr>
 
-    <!-- Baris BK -->
+    <!-- BK -->
     <tr class="text-center">
       <td class="text-start">Buka Kembali (BK)</td>
       <td>{{ hasil.BK.dari_hublang or '-' }}</td>
@@ -97,8 +131,8 @@
       <td class="fw-bold">{{ hasil.BK.jumlah_ket }}</td>
     </tr>
 
-    <!-- Baris JUMLAH -->
-    <tr class="fw-bold text-center">
+    <!-- JUMLAH -->
+    <tr class="fw-bold text-center bg-light">
       <td>JUMLAH</td>
       <td>{{ hasil.SIB.dari_hublang + hasil.BK.dari_hublang }}</td>
       <td>{{ hasil.SIB.ke_perencana + hasil.BK.ke_perencana }}</td>
@@ -114,17 +148,55 @@
       <td>{{ hasil.SIB.jumlah_ket + hasil.BK.jumlah_ket }}</td>
     </tr>
   </table>
+
+  <!-- FOOTER TANDA TANGAN -->
+  <div class="footer-ttd mt-4" style="page-break-inside: avoid;">
+    <div class="d-flex justify-content-between text-dark" style="font-size: 12px; font-family: sans-serif;">
+      
+      <!-- Sisi Kiri -->
+      <div style="min-width: 250px;" class="text-start">
+        <div style="height: 18px;"></div>
+        <div id="txt-keterangan-kiri">Diperiksa Oleh :</div>
+        <div id="txt-jabatan-kiri" class="fw-semibold">Kabag Perencana & Supervisi</div>
+        <div style="height: 60px;"></div>
+        <div id="txt-nama-kiri" class="fw-bold text-decoration-underline">NAMA</div>
+      </div>
+
+      <!-- Sisi Kanan -->
+      <div style="min-width: 250px;" class="text-center">
+        <div id="txt-kota-tgl" class="mb-1">Pematangsiantar, {{ today }}</div>
+        <div id="txt-keterangan-kanan">Diperbuat Oleh :</div>
+        <div id="txt-jabatan-kanan" class="fw-semibold">Kasubbag Perencana Jaringan</div>
+        <div style="height: 60px;"></div>
+        <div id="txt-nama-kanan" class="fw-bold text-decoration-underline">NAMA</div>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
-<style>
-  .print-only { display: none; }
+<!-- JavaScript Synchronizer -->
+<script>
+function updateFooterTTD() {
+  document.getElementById('txt-keterangan-kiri').innerText = document.getElementById('input-keterangan-kiri').value;
+  document.getElementById('txt-jabatan-kiri').innerText = document.getElementById('input-jabatan-kiri').value;
+  document.getElementById('txt-nama-kiri').innerText = document.getElementById('input-nama-kiri').value;
 
+  document.getElementById('txt-kota-tgl').innerText = document.getElementById('input-kota-tgl').value;
+  document.getElementById('txt-keterangan-kanan').innerText = document.getElementById('input-keterangan-kanan').value;
+  document.getElementById('txt-jabatan-kanan').innerText = document.getElementById('input-jabatan-kanan').value;
+  document.getElementById('txt-nama-kanan').innerText = document.getElementById('input-nama-kanan').value;
+}
+</script>
+
+<style>
   @media print {
     .no-print, .sidebar { display: none !important; }
-    .app-frame { box-shadow: none !important; border: none !important; max-width: 100% !important; }
-    #area-cetak { border: none !important; box-shadow: none !important; }
+    .app-frame { box-shadow: none !important; border: none !important; max-width: 100% !important; padding: 0 !important; }
+    #area-cetak { border: none !important; box-shadow: none !important; padding: 0 !important; }
     body { background: #fff !important; }
-    .print-only { display: block !important; }
+    .footer-ttd { display: block !important; margin-top: 35px !important; }
   }
 </style>
 {% endblock %}

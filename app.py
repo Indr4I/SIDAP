@@ -57,8 +57,34 @@ def get_db():
         g.db = sqlite3.connect(DB_PATH)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
+        
+
+        normalisasi_database_kecamatan(g.db)
+        
     return g.db
 
+def normalisasi_database_kecamatan(db):
+    """Membersihkan variasi nama kecamatan yang sudah terlanjur tersimpan di DB."""
+    try:
+        # 1. Bersihkan tabel permohonan
+        rows_perm = db.execute("SELECT DISTINCT kecamatan FROM permohonan WHERE kecamatan IS NOT NULL").fetchall()
+        for r in rows_perm:
+            kec_lama = r["kecamatan"]
+            kec_baru = bersihkan_kecamatan(kec_lama)
+            if kec_lama != kec_baru:
+                db.execute("UPDATE permohonan SET kecamatan=? WHERE kecamatan=?", (kec_baru, kec_lama))
+
+        # 2. Bersihkan tabel pelanggan
+        rows_pel = db.execute("SELECT DISTINCT kecamatan FROM pelanggan WHERE kecamatan IS NOT NULL").fetchall()
+        for r in rows_pel:
+            kec_lama = r["kecamatan"]
+            kec_baru = bersihkan_kecamatan(kec_lama)
+            if kec_lama != kec_baru:
+                db.execute("UPDATE pelanggan SET kecamatan=? WHERE kecamatan=?", (kec_baru, kec_lama))
+
+        db.commit()
+    except Exception as e:
+        print("Peringatan normalisasi kecamatan:", e)
 
 @app.teardown_appcontext
 def close_db(exception=None):
@@ -160,6 +186,76 @@ PERMOHONAN_DITINDAKLANJUTI = {
     "0": 0,
     "1": 1,
 }
+KECAMATAN_MAP = {
+    # Variasi Panombean Panei
+    "p. pane": "Panombean Panei",
+    "p.pane": "Panombean Panei",
+    "p. panei": "Panombean Panei",
+    "p.panei": "Panombean Panei",
+    "pane": "Panombean Panei",
+    "panei": "Panombean Panei",
+    "panombean pane": "Panombean Panei",
+    "panombean panei": "Panombean Panei",
+    "s. panei": "Panombean Panei",
+    "s.panei": "Panombean Panei",
+    "s. pane": "Panombean Panei",
+    "s.pane": "Panombean Panei",
+    "S. P.Panei" : "Panombean Panei",
+
+    # Variasi Siantar Barat
+    "s. barat": "Siantar Barat",
+    "s.barat": "Siantar Barat",
+    "siantar barat": "Siantar Barat",
+
+    # Variasi Siantar Marihat
+    "s. marihat": "Siantar Marihat",
+    "s.marihat": "Siantar Marihat",
+    "siantar marihat": "Siantar Marihat",
+
+    # Variasi Siantar Marimbun
+    "s. marimbun": "Siantar Marimbun",
+    "s.marimbun": "Siantar Marimbun",
+    "siantar marimbun": "Siantar Marimbun",
+    "S.Simarimbun": "Siantar Marimbun",
+
+    # Variasi Siantar Martoba
+    "s. martoba": "Siantar Martoba",
+    "s.martoba": "Siantar Martoba",
+    "siantar martoba": "Siantar Martoba",
+
+    # Variasi Siantar Sitalasari
+    "s. sitalasari": "Siantar Sitalasari",
+    "s.sitalasari": "Siantar Sitalasari",
+    "siantar sitalasari": "Siantar Sitalasari",
+
+    # Variasi Siantar Selatan
+    "s. selatan": "Siantar Selatan",
+    "s.selatan": "Siantar Selatan",
+    "siantar selatan": "Siantar Selatan",
+
+    # Variasi Siantar Timur
+    "s. timur": "Siantar Timur",
+    "s.timur": "Siantar Timur",
+    "siantar timur": "Siantar Timur",
+
+    # Variasi Siantar Utara
+    "s. utara": "Siantar Utara",
+    "s.utara": "Siantar Utara",
+    "siantar utara": "Siantar Utara",
+
+    # Variasi Siantar Simalungun / Simalungun
+    "s. malungun": "Siantar Simalungun",
+    "s.malungun": "Siantar Simalungun",
+    "s. simalungun": "Siantar Simalungun",
+    "s.simalungun": "Siantar Simalungun",
+}
+
+def bersihkan_kecamatan(raw_name):
+    """Mengubah variasi singkatan/typo kecamatan menjadi nama resmi standar."""
+    if not raw_name:
+        return ""
+    cleaned = str(raw_name).strip().lower()
+    return KECAMATAN_MAP.get(cleaned, raw_name.strip().title())
 
 
 def generate_template_workbook():
@@ -318,7 +414,8 @@ def parse_upload(fileobj, db):
             values[key] = row_cells[idx].value if idx < len(row_cells) else None
 
         nama = str(values.get("nama") or "").strip()
-        kecamatan = str(values.get("kecamatan") or "").strip()
+        kecamatan_raw = str(values.get("kecamatan") or "").strip()
+        kecamatan = bersihkan_kecamatan(kecamatan_raw)
         nomor_instalasi = str(values.get("nomor_instalasi") or "").strip()
         tanggal_pasang, tanggal_error = parse_tanggal(values.get("tanggal_pasang"))
         status = str(values.get("status") or "").strip().upper()
@@ -503,7 +600,8 @@ def parse_permohonan_upload(fileobj, db):
         nama_pelanggan = str(values.get("nama_pelanggan") or "").strip()
         lokasi = str(values.get("lokasi") or "").strip()
         kelurahan = str(values.get("kelurahan") or "").strip()
-        kecamatan = str(values.get("kecamatan") or "").strip()
+        kecamatan_raw = str(values.get("kecamatan") or "").strip()
+        kecamatan = bersihkan_kecamatan(kecamatan_raw)
         
         # Tentukan jenis dari nama sheet/tab
         sheet_title = ws.title.lower()
@@ -1976,10 +2074,11 @@ def permohonan_laporan_teknis_unduh():
     ws.title = "Kinerja Supervisi Teknik"
 
     # Styling Font, Border, Alignment & Fill
-    font_title = Font(name="Calibri", bold=True, size=12)
+    font_title = Font(name="Calibri", bold=True, size=11)
     font_header = Font(name="Calibri", bold=True, size=10)
     font_body = Font(name="Calibri", size=10)
     font_bold = Font(name="Calibri", bold=True, size=10)
+    font_underline = Font(name="Calibri", bold=True, size=10, underline="single")
     
     fill_header = PatternFill("solid", start_color="F2F2F2", end_color="F2F2F2")
     align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -1989,7 +2088,6 @@ def permohonan_laporan_teknis_unduh():
     border_all = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
 
     # Hitung Jumlah Kolom
-    # Col 1: Jenis | Col 2-3: Masuk | Col 4-7: Realisasi | Col 8..: Keterangan | Last Col: Jumlah
     total_cols = 7 + len(daftar_keterangan) + 1
     last_col_letter = get_column_letter(total_cols)
 
@@ -2001,11 +2099,10 @@ def permohonan_laporan_teknis_unduh():
 
     ws.merge_cells(f"A2:{last_col_letter}2")
     ws["A2"] = f"BULAN: {nama_bulan.upper()} {tahun}"
-    ws["A2"].font = Font(name="Calibri", bold=True, size=11)
+    ws["A2"].font = font_bold
     ws["A2"].alignment = align_center
 
-    # 2. Struktur Double / Triple Header (Baris 4, 5, 6)
-    # Merge Tingkat 1 (Baris 4)
+    # 2. Header Tabel (Baris 4, 5, 6)
     ws.merge_cells("A4:A6")
     ws["A4"] = "Jenis Permohonan"
 
@@ -2020,7 +2117,6 @@ def permohonan_laporan_teknis_unduh():
     ws.merge_cells(f"{ket_start_letter}4:{ket_end_letter}4")
     ws[f"{ket_start_letter}4"] = "Keterangan (Dikirim ke Hublang)"
 
-    # Merge Tingkat 2 & 3 (Baris 5 & 6)
     ws.merge_cells("B5:B6")
     ws["B5"] = "Dari Hublang"
 
@@ -2038,7 +2134,6 @@ def permohonan_laporan_teknis_unduh():
     ws.merge_cells("G5:G6")
     ws["G5"] = "Di Kirim ke Hublang"
 
-    # Header Keterangan Dinamis
     col_idx = 8
     for ket in daftar_keterangan:
         col_letter = get_column_letter(col_idx)
@@ -2046,12 +2141,10 @@ def permohonan_laporan_teknis_unduh():
         ws[f"{col_letter}5"] = ket
         col_idx += 1
 
-    # Kolom Jumlah Paling Kanan
     jml_col_letter = get_column_letter(total_cols)
     ws.merge_cells(f"{jml_col_letter}5:{jml_col_letter}6")
     ws[f"{jml_col_letter}5"] = "Jumlah"
 
-    # Terapkan Border dan Alignment untuk Semua Sel Header (Baris 4..6)
     for r in range(4, 7):
         for c in range(1, total_cols + 1):
             cell = ws.cell(row=r, column=c)
@@ -2060,17 +2153,15 @@ def permohonan_laporan_teknis_unduh():
             cell.alignment = align_center
             cell.border = border_all
 
-    # 3. Baris Data (Baris 7: SIB, Baris 8: BK)
+    # 3. Baris Data (Baris 7 & 8)
     label_jenis = {"SIB": "Sambungan Instalasi Baru (SIB)", "BK": "Buka Kembali (BK)"}
     r = 7
-
     total_per_col = {c: 0 for c in range(2, total_cols + 1)}
 
     for jenis in ("SIB", "BK"):
         h = hasil[jenis]
         ws.cell(row=r, column=1, value=label_jenis[jenis]).alignment = align_left
         
-        # Base values
         base_vals = [
             h["dari_hublang"], h["ke_perencana"], h["disurvei"],
             h["pipa_pendek"], h["pipa_panjang"], h["dikirim"]
@@ -2081,7 +2172,6 @@ def permohonan_laporan_teknis_unduh():
             ws.cell(row=r, column=idx, value=val_display)
             total_per_col[idx] += val
 
-        # Dynamic Keterangan Values
         c_idx = 8
         for ket in daftar_keterangan:
             val = h["detail_keterangan"].get(ket, 0)
@@ -2090,11 +2180,9 @@ def permohonan_laporan_teknis_unduh():
             total_per_col[c_idx] += val
             c_idx += 1
 
-        # Total Jumlah Keterangan Baris Ini
         ws.cell(row=r, column=c_idx, value=h["jumlah_ket"] if h["jumlah_ket"] > 0 else "-")
         total_per_col[c_idx] += h["jumlah_ket"]
 
-        # Apply formatting untuk baris data
         for c in range(1, total_cols + 1):
             cell = ws.cell(row=r, column=c)
             cell.font = font_body
@@ -2111,12 +2199,53 @@ def permohonan_laporan_teknis_unduh():
         cell = ws.cell(row=r, column=c, value=total_per_col[c])
         cell.font = font_bold
         cell.alignment = align_center
+        cell.border = border_all
+    ws.cell(row=r, column=1).border = border_all
 
-    for c in range(1, total_cols + 1):
-        ws.cell(row=r, column=c).border = border_all
+    # =========================================================
+    # 5. FOOTER TANDA TANGAN DI EXCEL (Sesuai Gambar)
+    # =========================================================
+    r_ttd = r + 3 # Jarak 3 baris di bawah tabel
+    
+    # --- SISI KIRI ---
+    ws.cell(row=r_ttd, column=2, value="Diperiksa Oleh :").font = font_body
+    ws.cell(row=r_ttd + 1, column=2, value="Kabag Perencana & Supervisi").font = font_bold
+    
+    # Nama Kiri (Bergaris Bawah / Underline)
+    c_nama_kiri = ws.cell(row=r_ttd + 5, column=2, value="JIMMI M. SIMATUPANG. ST")
+    c_nama_kiri.font = font_underline
 
-    # 5. Penyesuaian Lebar Kolom
-    ws.column_dimensions["A"].width = 30
+    # --- SISI KANAN ---
+    col_kanan_start = max(6, total_cols - 3)
+    col_kanan_end = total_cols
+    
+    tgl_hari_ini = datetime.now().strftime("%d %B %Y")
+    
+    # Kota & Tanggal
+    ws.merge_cells(start_row=r_ttd - 1, start_column=col_kanan_start, end_row=r_ttd - 1, end_column=col_kanan_end)
+    c_tgl = ws.cell(row=r_ttd - 1, column=col_kanan_start, value=f"Pematangsiantar, {tgl_hari_ini}")
+    c_tgl.alignment = align_center
+    c_tgl.font = font_body
+
+    # Keterangan & Jabatan Kanan
+    ws.merge_cells(start_row=r_ttd, start_column=col_kanan_start, end_row=r_ttd, end_column=col_kanan_end)
+    c_ket_k = ws.cell(row=r_ttd, column=col_kanan_start, value="Diperbuat Oleh :")
+    c_ket_k.alignment = align_center
+    c_ket_k.font = font_body
+
+    ws.merge_cells(start_row=r_ttd + 1, start_column=col_kanan_start, end_row=r_ttd + 1, end_column=col_kanan_end)
+    c_jab_k = ws.cell(row=r_ttd + 1, column=col_kanan_start, value="Kasubbag Perencana Jaringan")
+    c_jab_k.alignment = align_center
+    c_jab_k.font = font_bold
+
+    # Nama Kanan (Bergaris Bawah / Underline)
+    ws.merge_cells(start_row=r_ttd + 5, start_column=col_kanan_start, end_row=r_ttd + 5, end_column=col_kanan_end)
+    c_nama_kanan = ws.cell(row=r_ttd + 5, column=col_kanan_start, value="SUHAERI")
+    c_nama_kanan.alignment = align_center
+    c_nama_kanan.font = font_underline
+
+    # 6. Atur Lebar Kolom Otomatis
+    ws.column_dimensions["A"].width = 32
     for c in range(2, total_cols + 1):
         col_letter = get_column_letter(c)
         ws.column_dimensions[col_letter].width = 16

@@ -21,16 +21,40 @@
   </form>
 
   <div class="d-flex gap-2 mb-3">
-    <button onclick="window.print()" class="btn btn-dark btn-sm">Cetak / simpan sebagai PDF</button>
+    <button onclick="window.print()" class="btn btn-primary btn-sm fw-bold px-3">Cetak / simpan sebagai PDF</button>
     <a href="#" id="btn-unduh-excel" class="btn btn-outline-secondary btn-sm">Unduh sebagai .xlsx</a>
+  </div>
+
+  <!-- Card Input Tanda Tangan (Format Baru) -->
+  <div class="card border-0 shadow-sm bg-light mb-3" style="max-width: 750px;">
+    <div class="card-body py-2 px-3">
+      <div class="fw-bold mb-2 text-dark" style="font-size:13px">Tanda Diketahui</div>
+      <div class="row g-2">
+        <!-- Sisi Kiri -->
+        <div class="col-md-6">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-keterangan-kiri" value="Diperiksa Oleh :" oninput="updateFooterTTD()" placeholder="Keterangan Kiri">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-jabatan-kiri" value="Kabag Perencana & Supervisi" oninput="updateFooterTTD()" placeholder="Jabatan Kiri">
+          <input type="text" class="form-control form-control-sm" id="input-nama-kiri" value="NAMA" oninput="updateFooterTTD()" placeholder="Nama Kiri">
+        </div>
+        <!-- Sisi Kanan -->
+        <div class="col-md-6">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-kota-tgl" value="Pematangsiantar, {{ today }}" oninput="updateFooterTTD()" placeholder="Kota & Tanggal">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-keterangan-kanan" value="Diperbuat Oleh :" oninput="updateFooterTTD()" placeholder="Keterangan Kanan">
+          <input type="text" class="form-control form-control-sm mb-1" id="input-jabatan-kanan" value="Kasubbag Perencana Jaringan" oninput="updateFooterTTD()" placeholder="Jabatan Kanan">
+          <input type="text" class="form-control form-control-sm" id="input-nama-kanan" value="NAMA" oninput="updateFooterTTD()" placeholder="Nama Kanan">
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
+<hr class="no-print my-4">
+
 <!-- Area Cetak Laporan -->
-<div class="stat-card" id="area-cetak">
+<div class="stat-card bg-white p-4 rounded border shadow-sm" id="area-cetak">
   <div class="text-center mb-3">
     <div style="flex:0 0 80px;">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" style="max-height:60px; max-width:80px;" onerror="this.style.display='none'";>
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="logo" style="max-height:60px; max-width:80px;" onerror="this.style.display='none'">
     </div>
     <div class="fw-bold" style="font-size:16px; text-decoration:underline">LAPORAN BULANAN</div>
     <div style="font-size:13px">BULAN: <span id="txt-title-bulan">—</span> <span id="txt-title-tahun">—</span></div>
@@ -38,7 +62,7 @@
 
   <table class="table table-sm table-bordered mb-0">
     <thead>
-      <tr class="text-center fw-bold">
+      <tr class="text-center fw-bold bg-light">
         <th style="width:8%">NO</th>
         <th>KECAMATAN</th>
         <th style="width:15%">SIB</th>
@@ -50,7 +74,7 @@
       <tr><td colspan="5" class="text-center text-secondary py-3">Memuat data laporan...</td></tr>
     </tbody>
     <tfoot>
-      <tr class="fw-bold text-center">
+      <tr class="fw-bold text-center bg-light">
         <td colspan="2">JUMLAH</td>
         <td id="txt-total-sib">0</td>
         <td id="txt-total-bk">0</td>
@@ -58,14 +82,43 @@
       </tr>
     </tfoot>
   </table>
+
+  <!-- ================= SECTION FOOTER TANDA TANGAN ================= -->
+  <div class="footer-ttd mt-4" style="page-break-inside: avoid;">
+    <div class="d-flex justify-content-between text-dark" style="font-size: 12px; font-family: sans-serif;">
+      
+      <!-- Sisi Kiri -->
+      <div style="min-width: 250px;" class="text-start">
+        <div style="height: 18px;"></div> <!-- Penyeimbang tinggi kota & tanggal -->
+        <div id="txt-keterangan-kiri">Diperiksa Oleh :</div>
+        <div id="txt-jabatan-kiri" class="fw-semibold">Kabag Perencana & Supervisi</div>
+        <div style="height: 60px;"></div> <!-- Ruang tanda tangan -->
+        <div id="txt-nama-kiri" class="fw-bold text-decoration-underline">NAMA</div>
+      </div>
+
+      <!-- Sisi Kanan -->
+      <div style="min-width: 250px;" class="text-center">
+        <div id="txt-kota-tgl" class="mb-1">Pematangsiantar, {{ today }}</div>
+        <div id="txt-keterangan-kanan">Diperbuat Oleh :</div>
+        <div id="txt-jabatan-kanan" class="fw-semibold">Kasubbag Perencana Jaringan</div>
+        <div style="height: 60px;"></div> <!-- Ruang tanda tangan -->
+        <div id="txt-nama-kanan" class="fw-bold text-decoration-underline">NAMA</div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <style>
   @media print {
     .no-print, .sidebar { display: none !important; }
-    .app-frame { box-shadow: none !important; border: none !important; max-width: 100% !important; }
-    #area-cetak { border: none !important; box-shadow: none !important; }
+    .app-frame { box-shadow: none !important; border: none !important; max-width: 100% !important; padding: 0 !important; }
+    #area-cetak { border: none !important; box-shadow: none !important; padding: 0 !important; }
     body { background: #fff !important; }
+  }
+  .footer-ttd {
+    display: block !important;
+    margin-top: 35px !important;
   }
 </style>
 
@@ -73,6 +126,17 @@
 <!-- JAVASCRIPT LOGIC FOR LIVE REPORT           -->
 <!-- ========================================== -->
 <script>
+function updateFooterTTD() {
+  document.getElementById('txt-keterangan-kiri').innerText = document.getElementById('input-keterangan-kiri').value;
+  document.getElementById('txt-jabatan-kiri').innerText = document.getElementById('input-jabatan-kiri').value;
+  document.getElementById('txt-nama-kiri').innerText = document.getElementById('input-nama-kiri').value;
+
+  document.getElementById('txt-kota-tgl').innerText = document.getElementById('input-kota-tgl').value;
+  document.getElementById('txt-keterangan-kanan').innerText = document.getElementById('input-keterangan-kanan').value;
+  document.getElementById('txt-jabatan-kanan').innerText = document.getElementById('input-jabatan-kanan').value;
+  document.getElementById('txt-nama-kanan').innerText = document.getElementById('input-nama-kanan').value;
+}
+
 document.addEventListener("DOMContentLoaded", function() {
     const formFilter = document.getElementById('form-filter');
     const selectTahun = document.getElementById('select-tahun');

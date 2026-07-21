@@ -42,20 +42,19 @@
   </div>
 </form>
 
-<div id="area-cetak" class="bg-white rounded" style="overflow-x:auto">
-<table class="table table-sm mb-0" style="font-size:12.5px">
-  <thead>
+<div id="area-cetak" class="bg-white rounded border shadow-sm" style="overflow-x:auto">
+<table class="table table-hover align-middle mb-0 custom-compact-pelanggan">
+  <thead class="table-light">
     <tr>
-      <th>No</th>
-      <th>Nama</th>
+      <th class="text-center" style="width: 35px">No</th>
+      <th>Nama Pelanggan</th>
       <th>Alamat</th>
-      <th>Kelurahan</th>
-      <th>Kecamatan</th>
-      <th>No. Instalasi</th>
-      <th>Tgl Pasang</th>
-      <th>Status</th>
+      <th>Kel / Kec</th>
+      <th class="text-center" style="width: 90px">No. Instalasi</th>
+      <th class="text-center" style="width: 90px">Tgl Pasang</th>
+      <th class="text-center" style="width: 60px">Status</th>
       <th>Petugas</th>
-      <th class="no-print"></th>
+      <th class="text-end no-print" style="width: 50px">Aksi</th>
     </tr>
   </thead>
   <tbody id="tabel-pelanggan">
@@ -64,7 +63,23 @@
 </table>
 </div>
 
+
 <style>
+    .custom-compact-pelanggan {
+      font-size: 13.5px !important; /* Font diperbesar dari 11px ke 13.5px */
+    }
+    .custom-compact-pelanggan th {
+      font-weight: 700;
+      color: #1e293b;
+      padding: 10px 8px !important; /* Baris header lebih lapang */
+      vertical-align: middle;
+      white-space: nowrap;
+      background-color: #f1f5f9;
+    }
+    .custom-compact-pelanggan td {
+      padding: 9px 8px !important; /* Baris isi tabel lebih tebal & mudah dibaca */
+      vertical-align: middle;
+    }
   .print-only { display: none; }
 
   @media print {
@@ -225,7 +240,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
 
                 // 3. Set teks total pelanggan terdaftar
-                txtTotalInfo.innerText = `${data.total} baris data ditampilkan (1 baris = 1 instalasi; pelanggan dengan beberapa instalasi muncul beberapa baris)`;
+                txtTotalInfo.innerText = `${data.total} baris data pelanggan terpasang`;
 
                 // 3.5. Siapkan header khusus untuk tampilan print
                 const printHeader = document.getElementById('print-period-info');
@@ -252,37 +267,33 @@ document.addEventListener("DOMContentLoaded", function() {
                     let statusBadge;
                     if (r.status) {
                         const badgeClass = r.status === 'SIB' ? 'badge-sib' : 'badge-bk';
-                        statusBadge = `<span class="badge ${badgeClass}">${r.status}</span>`;
+                        statusBadge = `<span class="badge ${badgeClass} fs-6">${r.status}</span>`;
                     } else {
                         statusBadge = '<span class="text-muted">—</span>';
                     }
 
-                    // Tentukan tombol edit (edit instalasi jika ada ID instalasi, atau edit pelanggan)
-                    let btnEdit = '';
-                    if (r.instalasi_id) {
-                        btnEdit = `<a href="/instalasi/${r.instalasi_id}/edit" class="btn btn-sm btn-outline-secondary py-0">Edit</a>`;
-                    } else {
-                        btnEdit = `<a href="/pelanggan/${r.pelanggan_id}/edit" class="btn btn-sm btn-outline-secondary py-0">Edit</a>`;
-                    }
+                    let editUrl = r.instalasi_id ? `/instalasi/${r.instalasi_id}/edit` : `/pelanggan/${r.pelanggan_id}/edit`;
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${no}</td>
-                        <td>${r.nama}</td>
-                        <td>${r.alamat || ''}</td>
-                        <td>${r.kelurahan || ''}</td>
-                        <td>${r.kecamatan}</td>
-                        <td>${r.nomor_instalasi || '—'}</td>
-                        <td>${r.tanggal_pasang || '—'}</td>
-                        <td>${statusBadge}</td>
+                        <td class="text-center text-secondary fw-bold">${no}</td>
+                        <td class="fw-bold text-dark">${r.nama}</td>
+                        <td class="text-dark">${r.alamat || '—'}</td>
+                        <td>
+                            <div class="fw-semibold text-dark">${r.kelurahan || '—'}</div>
+                            <div class="text-muted" style="font-size: 12px">${r.kecamatan || '—'}</div>
+                        </td>
+                        <td class="text-center fw-bold text-primary">${r.nomor_instalasi || '—'}</td>
+                        <td class="text-center text-nowrap">${r.tanggal_pasang || '—'}</td>
+                        <td class="text-center">${statusBadge}</td>
                         <td>${r.petugas || '—'}</td>
-                        <td class="text-end text-nowrap no-print">
-                            ${btnEdit}
+                        <td class="text-end no-print">
+                            <a href="${editUrl}" class="btn btn-sm btn-outline-primary fw-bold px-3 py-1">Edit</a>
                         </td>
                     `;
                     tbody.appendChild(tr);
 
-                    no++; // Menambah +1 untuk baris berikutnya
+                    no++;
                 });
 
                 // 5. Update navigasi prev/next + lompat-halaman
