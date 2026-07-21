@@ -947,64 +947,60 @@ def api_pelanggan_list():
     page = max(1, request.args.get("page", 1, type=int))
     per_page = 30
 
+    # v0.9.5: list sekarang satu baris = satu instalasi (bukan satu baris = satu
+    # pelanggan yang diringkas), sesuai keputusan revisi UI -- pelanggan dengan
+    # banyak instalasi (mis. kasus Sarpita) muncul sebagai beberapa baris.
+    # Pelanggan yang belum punya instalasi sama sekali tetap muncul 1 baris
+    # (kolom instalasi kosong) lewat LEFT JOIN.
     conditions = []
     params = []
     if q:
-        conditions.append(
-            "(p.nama LIKE ? OR EXISTS (SELECT 1 FROM instalasi WHERE pelanggan_id=p.id AND nomor_instalasi LIKE ?))"
-        )
+        conditions.append("(p.nama LIKE ? OR i.nomor_instalasi LIKE ?)")
         params += [f"%{q}%", f"%{q}%"]
     if kecamatan != "semua":
         conditions.append("p.kecamatan = ?")
         params.append(kecamatan)
-
-    inst_conditions = []
-    inst_params = []
     if status != "semua":
-        inst_conditions.append("status = ?")
-        inst_params.append(status)
+        conditions.append("i.status = ?")
+        params.append(status)
     if tahun:
-        inst_conditions.append("strftime('%Y', tanggal_pasang) = ?")
-        inst_params.append(tahun)
+        conditions.append("strftime('%Y', i.tanggal_pasang) = ?")
+        params.append(tahun)
     if bulan:
-        inst_conditions.append("strftime('%m', tanggal_pasang) = ?")
-        inst_params.append(bulan.zfill(2))
-    if inst_conditions:
-        conditions.append(
-            f"EXISTS (SELECT 1 FROM instalasi WHERE pelanggan_id=p.id AND {' AND '.join(inst_conditions)})"
-        )
-        params += inst_params
-
-    # ... (bagian parameter query string tetap sama) ...
+        conditions.append("strftime('%m', i.tanggal_pasang) = ?")
+        params.append(bulan.zfill(2))
 
     where_clause = " AND ".join(conditions) if conditions else "1=1"
-    
-    # Tambahkan kata DISTINCT di dalam group_concat agar status yang kembar disaring
+
     query = f"""SELECT p.id pelanggan_id, p.nama, p.alamat, p.kelurahan, p.kecamatan,
-                       (SELECT COUNT(*) FROM instalasi WHERE pelanggan_id=p.id) jumlah_instalasi,
-                       (SELECT group_concat(DISTINCT status) FROM instalasi WHERE pelanggan_id=p.id) semua_status,
-                       (SELECT MAX(tanggal_pasang) FROM instalasi WHERE pelanggan_id=p.id) tanggal_terbaru
+                       i.id instalasi_id, i.nomor_instalasi, i.tanggal_pasang,
+                       i.diameter_pipa, i.tekanan_air, i.status, i.petugas, i.keterangan
                 FROM pelanggan p
+                LEFT JOIN instalasi i ON i.pelanggan_id = p.id
                 WHERE {where_clause}
-                ORDER BY p.nama"""
+                ORDER BY p.nama, i.tanggal_pasang"""
 
     all_rows = db.execute(query, params).fetchall()
     total = len(all_rows)
     total_pages = max(1, (total + per_page - 1) // per_page)
     page = min(page, total_pages)
-    
+
     sliced_rows = all_rows[(page - 1) * per_page: page * per_page]
 
-    # Masukkan data semua_status ke dalam JSON response
     rows = [{
         "pelanggan_id": r["pelanggan_id"],
         "nama": r["nama"],
         "alamat": r["alamat"],
         "kelurahan": r["kelurahan"],
         "kecamatan": r["kecamatan"],
-        "jumlah_instalasi": r["jumlah_instalasi"],
-        "semua_status": r["semua_status"] if r["semua_status"] else "",
-        "tanggal_terbaru": r["tanggal_terbaru"] if r["tanggal_terbaru"] else ""
+        "instalasi_id": r["instalasi_id"],
+        "nomor_instalasi": r["nomor_instalasi"] or "",
+        "tanggal_pasang": r["tanggal_pasang"] or "",
+        "diameter_pipa": r["diameter_pipa"] or "",
+        "tekanan_air": r["tekanan_air"] if r["tekanan_air"] is not None else "",
+        "status": r["status"] or "",
+        "petugas": r["petugas"] or "",
+        "keterangan": r["keterangan"] or "",
     } for r in sliced_rows]
 
     kecamatan_list = daftar_kecamatan(db)
@@ -1030,40 +1026,29 @@ def pelanggan_export():
     conditions = []
     params = []
     if q:
-        conditions.append(
-            "(p.nama LIKE ? OR EXISTS (SELECT 1 FROM instalasi WHERE pelanggan_id=p.id AND nomor_instalasi LIKE ?))"
-        )
+        conditions.append("(p.nama LIKE ? OR i.nomor_instalasi LIKE ?)")
         params += [f"%{q}%", f"%{q}%"]
     if kecamatan != "semua":
         conditions.append("p.kecamatan = ?")
         params.append(kecamatan)
-
-    inst_conditions = []
-    inst_params = []
     if status != "semua":
-        inst_conditions.append("status = ?")
-        inst_params.append(status)
+        conditions.append("i.status = ?")
+        params.append(status)
     if tahun:
-        inst_conditions.append("strftime('%Y', tanggal_pasang) = ?")
-        inst_params.append(tahun)
+        conditions.append("strftime('%Y', i.tanggal_pasang) = ?")
+        params.append(tahun)
     if bulan:
-        inst_conditions.append("strftime('%m', tanggal_pasang) = ?")
-        inst_params.append(bulan.zfill(2))
-    if inst_conditions:
-        conditions.append(
-            f"EXISTS (SELECT 1 FROM instalasi WHERE pelanggan_id=p.id AND {' AND '.join(inst_conditions)})"
-        )
-        params += inst_params
+        conditions.append("strftime('%m', i.tanggal_pasang) = ?")
+        params.append(bulan.zfill(2))
 
     where_clause = " AND ".join(conditions) if conditions else "1=1"
     rows = db.execute(
         f"""SELECT p.nama, p.alamat, p.kelurahan, p.kecamatan,
-                          (SELECT group_concat(DISTINCT status) FROM instalasi WHERE pelanggan_id=p.id) semua_status,
-                          (SELECT MAX(tanggal_pasang) FROM instalasi WHERE pelanggan_id=p.id) tanggal_terbaru,
-                          (SELECT COUNT(*) FROM instalasi WHERE pelanggan_id=p.id) jumlah_instalasi
-                   FROM pelanggan p
-                   WHERE {where_clause}
-                   ORDER BY p.nama""",
+                   i.nomor_instalasi, i.tanggal_pasang, i.status, i.petugas, i.keterangan
+            FROM pelanggan p
+            LEFT JOIN instalasi i ON i.pelanggan_id = p.id
+            WHERE {where_clause}
+            ORDER BY p.nama, i.tanggal_pasang""",
         params,
     ).fetchall()
 
@@ -1072,15 +1057,16 @@ def pelanggan_export():
     ws.title = "Semua Pelanggan"
     ws.append([
         "Nama", "Alamat", "Kelurahan", "Kecamatan",
-        "Status", "Tanggal Pasang Terakhir", "Jumlah Instalasi"
+        "No. Instalasi", "Tanggal Pasang", "Status", "Petugas", "Keterangan"
     ])
     for r in rows:
         ws.append([
             r["nama"], r["alamat"], r["kelurahan"], r["kecamatan"],
-            r["semua_status"] or "", r["tanggal_terbaru"] or "", r["jumlah_instalasi"],
+            r["nomor_instalasi"] or "", r["tanggal_pasang"] or "",
+            r["status"] or "", r["petugas"] or "", r["keterangan"] or "",
         ])
 
-    for idx, width in enumerate([25, 35, 20, 20, 15, 18, 16], start=1):
+    for idx, width in enumerate([25, 35, 20, 20, 16, 15, 10, 15, 30], start=1):
         ws.column_dimensions[get_column_letter(idx)].width = width
 
     buf = io.BytesIO()
@@ -1211,11 +1197,15 @@ def instalasi_tambah(pid):
     return render_template("instalasi_form.html", pelanggan=pelanggan, form_data=None)
 
 
-# ---------------- Edit / hapus instalasi ----------------
+# ---------------- Edit / hapus instalasi + data pelanggan ----------------
 @app.route("/instalasi/<int:iid>/edit", methods=["GET", "POST"])
 def instalasi_edit(iid):
     db = get_db()
     inst = db.execute("SELECT * FROM instalasi WHERE id=?", (iid,)).fetchone()
+    if not inst:
+        flash("Instalasi tidak ditemukan.", "error")
+        return redirect(url_for("pelanggan_list"))
+        
     pelanggan = db.execute("SELECT * FROM pelanggan WHERE id=?", (inst["pelanggan_id"],)).fetchone()
 
     if request.method == "POST":
@@ -1224,13 +1214,26 @@ def instalasi_edit(iid):
             "SELECT 1 FROM instalasi WHERE nomor_instalasi=? AND id!=?", (nomor_instalasi, iid)
         ).fetchone()
         if dup:
-            flash(f"Nomor instalasi \"{nomor_instalasi}\" sudah dipakai instalasi lain. Cek kembali sebelum simpan.", "error")
+            flash(f'Nomor instalasi "{nomor_instalasi}" sudah dipakai instalasi lain. Cek kembali sebelum simpan.', "error")
             return render_template("instalasi_edit.html", instalasi=inst, pelanggan=pelanggan)
 
         if not is_valid_iso_date(request.form.get("tanggal_pasang", "")):
             flash("Tanggal pasang tidak valid. Pakai date picker, jangan ketik manual.", "error")
             return render_template("instalasi_edit.html", instalasi=inst, pelanggan=pelanggan)
 
+        # 1. Update Data Pelanggan (Nama, Alamat, Kelurahan, Kecamatan)
+        db.execute(
+            "UPDATE pelanggan SET nama=?, alamat=?, kelurahan=?, kecamatan=? WHERE id=?",
+            (
+                request.form.get("nama", pelanggan["nama"]),
+                request.form.get("alamat", ""),
+                request.form.get("kelurahan", ""),
+                request.form.get("kecamatan", pelanggan["kecamatan"]),
+                inst["pelanggan_id"],
+            ),
+        )
+
+        # 2. Update Data Instalasi
         db.execute(
             """UPDATE instalasi SET nomor_instalasi=?, tanggal_pasang=?, diameter_pipa=?,
                tekanan_air=?, status=?, petugas=?, keterangan=? WHERE id=?""",
@@ -1246,8 +1249,9 @@ def instalasi_edit(iid):
             ),
         )
         db.commit()
-        flash("Instalasi diperbarui.")
-        return redirect(url_for("pelanggan_detail", pid=inst["pelanggan_id"]))
+        flash("Data pelanggan & instalasi berhasil diperbarui.")
+        # Mengarahkan kembali ke daftar Semua Pelanggan
+        return redirect(url_for("pelanggan_list"))
 
     return render_template("instalasi_edit.html", instalasi=inst, pelanggan=pelanggan)
 
@@ -1255,43 +1259,10 @@ def instalasi_edit(iid):
 @app.route("/instalasi/<int:iid>/hapus", methods=["POST"])
 def instalasi_hapus(iid):
     db = get_db()
-    inst = db.execute("SELECT pelanggan_id FROM instalasi WHERE id=?", (iid,)).fetchone()
     db.execute("DELETE FROM instalasi WHERE id=?", (iid,))
     db.commit()
-    flash("Instalasi dihapus.")
-    return redirect(url_for("pelanggan_detail", pid=inst["pelanggan_id"]))
-
-
-# ---------------- Edit / hapus pelanggan ----------------
-@app.route("/pelanggan/<int:pid>/edit", methods=["GET", "POST"])
-def pelanggan_edit(pid):
-    db = get_db()
-    if request.method == "POST":
-        db.execute(
-            "UPDATE pelanggan SET nama=?, alamat=?, kelurahan=?, kecamatan=? WHERE id=?",
-            (
-                request.form["nama"],
-                request.form.get("alamat", ""),
-                request.form.get("kelurahan", ""),
-                request.form["kecamatan"],
-                pid,
-            ),
-        )
-        db.commit()
-        flash("Data pelanggan diperbarui.")
-        return redirect(url_for("pelanggan_detail", pid=pid))
-
-    pelanggan = db.execute("SELECT * FROM pelanggan WHERE id=?", (pid,)).fetchone()
-    return render_template("pelanggan_form.html", pelanggan=pelanggan)
-
-
-@app.route("/pelanggan/<int:pid>/hapus", methods=["POST"])
-def pelanggan_hapus(pid):
-    db = get_db()
-    db.execute("DELETE FROM instalasi WHERE pelanggan_id=?", (pid,))
-    db.execute("DELETE FROM pelanggan WHERE id=?", (pid,))
-    db.commit()
-    flash("Pelanggan dan seluruh instalasinya dihapus.")
+    flash("Instalasi berhasil dihapus.")
+    # Mengarahkan kembali ke daftar Semua Pelanggan
     return redirect(url_for("pelanggan_list"))
 
 
@@ -1426,55 +1397,122 @@ def laporan_bulanan():
 @app.route("/laporan/unduh")
 def laporan_unduh_xlsx():
     import io
-    import openpyxl
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from flask import send_file
 
     db = get_db()
     tahun = request.args.get("tahun", "").strip()
     bulan = request.args.get("bulan", "").strip()
     
-    # 1. Ambil data rekap dari fungsi helper bawaan
+    # 1. Ambil data rekap
     rows, total_sib, total_bk = hitung_rekap_bulanan(db, tahun, bulan)
     nama_bulan = NAMA_BULAN[int(bulan) - 1] if bulan else ""
 
-    # 2. Membuat file Excel baru menggunakan openpyxl
-    wb = openpyxl.Workbook()
+    wb = Workbook()
     ws = wb.active
     ws.title = "Laporan Bulanan"
 
-    # Baris Judul Laporan
-    ws.append(["LAPORAN BULANAN"])
-    ws.append([f"BULAN: {nama_bulan.upper()} {tahun}"])
-    ws.append([])  # Baris kosong untuk jarak
+    # Define Styling
+    font_title = Font(name="Calibri", bold=True, size=12)
+    font_sub = Font(name="Calibri", bold=True, size=10)
+    font_header = Font(name="Calibri", bold=True, size=10)
+    font_body = Font(name="Calibri", size=10)
+    font_bold = Font(name="Calibri", bold=True, size=10)
 
-    # Header Tabel Excel
-    ws.append(["NO", "KECAMATAN", "SIB", "BK", "JUMLAH"])
+    fill_header = PatternFill("solid", start_color="F2F2F2", end_color="F2F2F2")
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_left = Alignment(horizontal="left", vertical="center")
+    align_right = Alignment(horizontal="right", vertical="center")
 
-    # Isi Data Kecamatan
+    thin_side = Side(style="thin", color="000000")
+    border_all = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+    # 2. Baris Judul Laporan (Merge A1:E1 dan A2:E2)
+    ws.merge_cells("A1:E1")
+    ws["A1"] = "LAPORAN BULANAN"
+    ws["A1"].font = font_title
+    ws["A1"].alignment = align_center
+
+    ws.merge_cells("A2:E2")
+    ws["A2"] = f"BULAN: {nama_bulan.upper()} {tahun}"
+    ws["A2"].font = font_sub
+    ws["A2"].alignment = align_center
+
+    # Baris 3 kosong untuk jarak
+
+    # 3. Header Tabel (Baris 4)
+    headers = ["NO", "KECAMATAN", "SIB", "BK", "JUMLAH"]
+    for col_idx, h in enumerate(headers, start=1):
+        cell = ws.cell(row=4, column=col_idx, value=h)
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = align_center
+        cell.border = border_all
+    ws.row_dimensions[4].height = 24
+
+    # 4. Isi Data Kecamatan (Baris 5 dst)
+    current_row = 5
     for idx, r in enumerate(rows, start=1):
-        ws.append([
-            idx,
-            r["kecamatan"].upper(),
-            r["sib"] if r["sib"] > 0 else "-",
-            r["bk"] if r["bk"] > 0 else "-",
-            r["jumlah"]
-        ])
+        # Kolom 1: NO
+        c_no = ws.cell(row=current_row, column=1, value=idx)
+        c_no.alignment = align_center
+        
+        # Kolom 2: KECAMATAN
+        c_kec = ws.cell(row=current_row, column=2, value=r["kecamatan"].upper())
+        c_kec.alignment = align_left
+        
+        # Kolom 3: SIB
+        c_sib = ws.cell(row=current_row, column=3, value=r["sib"] if r["sib"] > 0 else "-")
+        c_sib.alignment = align_center
+        
+        # Kolom 4: BK
+        c_bk = ws.cell(row=current_row, column=4, value=r["bk"] if r["bk"] > 0 else "-")
+        c_bk.alignment = align_center
+        
+        # Kolom 5: JUMLAH
+        c_jml = ws.cell(row=current_row, column=5, value=r["jumlah"])
+        c_jml.alignment = align_center
 
-    # Baris Total Paling Bawah
-    ws.append([
-        "JUMLAH",
-        "",
-        total_sib,
-        total_bk,
-        total_sib + total_bk
-    ])
+        # Terapkan font & border untuk semua sel di baris ini
+        for col_idx in range(1, 6):
+            cell = ws.cell(row=current_row, column=col_idx)
+            cell.font = font_body
+            cell.border = border_all
+        
+        ws.row_dimensions[current_row].height = 20
+        current_row += 1
 
-    # 3. Simpan file Excel ke dalam memori buffer (BytesIO) agar tidak mengotori storage
+    # 5. Baris Total Paling Bawah
+    ws.merge_cells(f"A{current_row}:B{current_row}")
+    ws.cell(row=current_row, column=1, value="JUMLAH").alignment = align_center
+    ws.cell(row=current_row, column=3, value=total_sib).alignment = align_center
+    ws.cell(row=current_row, column=4, value=total_bk).alignment = align_center
+    ws.cell(row=current_row, column=5, value=total_sib + total_bk).alignment = align_center
+
+    for col_idx in range(1, 6):
+        cell = ws.cell(row=current_row, column=col_idx)
+        cell.font = font_bold
+        cell.border = border_all
+
+    ws.row_dimensions[current_row].height = 22
+
+    # 6. Atur Lebar Kolom
+    col_widths = {
+        'A': 8,   # NO
+        'B': 25,  # KECAMATAN
+        'C': 15,  # SIB
+        'D': 15,  # BK
+        'E': 15   # JUMLAH
+    }
+    for col_letter, width in col_widths.items():
+        ws.column_dimensions[col_letter].width = width
+
+    # 7. Simpan file ke BytesIO
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
 
-    # 4. Alirkan file Excel langsung ke browser client
     return send_file(
         output,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1830,18 +1868,7 @@ def hitung_evaluasi_kinerja(db, tahun):
 
 @app.route("/permohonan/laporan")
 def permohonan_laporan():
-    db = get_db()
-    tahun_list = [
-        r["t"] for r in db.execute(
-            """SELECT DISTINCT strftime('%Y', tanggal_permohonan) t FROM permohonan
-               WHERE tanggal_permohonan IS NOT NULL AND strftime('%Y', tanggal_permohonan) IS NOT NULL
-               ORDER BY t DESC"""
-        ).fetchall()
-    ]
-    tahun = request.args.get("tahun", "") or (tahun_list[0] if tahun_list else datetime.now().strftime("%Y"))
-    baris, total = hitung_evaluasi_kinerja(db, tahun)
-    return render_template("permohonan_laporan.html", tahun_list=tahun_list, tahun=tahun, baris=baris, total=total)
-
+    return redirect(url_for("permohonan_laporan_teknis"))
 
 def ambil_rincian_bulanan(db, tahun, bulan, jenis):
     return db.execute(
@@ -1855,14 +1882,28 @@ def ambil_rincian_bulanan(db, tahun, bulan, jenis):
 
 
 def hitung_kinerja_teknik(db, tahun, bulan):
-    """Rekap teknis per jenis (SIB/BK) untuk satu bulan: berapa masuk,
-    disurvei, breakdown panjang pipa (diturunkan dari jenis_pipa), berapa
-    dikirim ke Hublang, dan breakdown alasan khusus (butuh pipa distribusi,
-    meter sudah terpasang, dst). JUMLAH di bagian keterangan itu sengaja
-    HANYA jumlah dari 4 kategori khusus itu -- bukan sama dengan angka
-    'dikirim ke Hublang' (yang jauh lebih besar, karena itu termasuk kasus
-    normal yang gak butuh keterangan khusus)."""
-    hasil = {}
+    # 1. Ambil SEMUA keterangan unik dari data bulan terkait
+    rows_ket = db.execute(
+        """SELECT DISTINCT keterangan FROM permohonan
+           WHERE strftime('%Y', tanggal_permohonan)=? AND strftime('%m', tanggal_permohonan)=?
+                 AND keterangan IS NOT NULL AND keterangan != ''
+           ORDER BY keterangan""",
+        (tahun, bulan),
+    ).fetchall()
+    
+    daftar_keterangan = [r["keterangan"] for r in rows_ket]
+    
+    # Jika pada bulan tersebut belum ada data keterangan, tampilkan daftar standar
+    if not daftar_keterangan:
+        daftar_keterangan = [
+            "Butuh Pipa Distribusi",
+            "Meter Air Sudah Terpasang",
+            "Bekas Pemutusan / Buka Kembali",
+            "Rumah Tidak Ditemukan"
+        ]
+
+    hasil = {"daftar_keterangan": daftar_keterangan}
+
     for jenis in ("SIB", "BK"):
         def hitung(kondisi_tambahan="", params_tambahan=()):
             q = f"""SELECT COUNT(*) c FROM permohonan
@@ -1875,18 +1916,26 @@ def hitung_kinerja_teknik(db, tahun, bulan):
         pipa_pendek = hitung("AND jenis_pipa='P.Dinas'")
         pipa_panjang = hitung("AND jenis_pipa='P.Distribusi'")
         dikirim = hitung("AND tanggal_dikirim_hublang IS NOT NULL")
-        butuh_pipa = hitung("AND keterangan='Butuh Pipa Distribusi'")
-        meter_terpasang = hitung("AND keterangan='Meter Air Sudah Terpasang'")
-        bekas_pemutusan = hitung("AND keterangan='Bekas Pemutusan / Buka Kembali'")
-        alamat_rumah_tt = hitung("AND keterangan IN ('Rumah Tidak Ditemukan','Alamat tidak dapat ditemukan')")
+
+        # Hitung dinamis sesuai keterangan apapun yang ada di database
+        detail_keterangan = {}
+        total_ket = 0
+        for ket in daftar_keterangan:
+            c = hitung("AND keterangan=?", (ket,))
+            detail_keterangan[ket] = c
+            total_ket += c
 
         hasil[jenis] = {
-            "dari_hublang": dari_hublang, "ke_perencana": dari_hublang, "disurvei": disurvei,
-            "pipa_pendek": pipa_pendek, "pipa_panjang": pipa_panjang, "dikirim": dikirim,
-            "butuh_pipa": butuh_pipa, "meter_terpasang": meter_terpasang,
-            "bekas_pemutusan": bekas_pemutusan, "alamat_rumah_tt": alamat_rumah_tt,
-            "jumlah_ket": butuh_pipa + meter_terpasang + bekas_pemutusan + alamat_rumah_tt,
+            "dari_hublang": dari_hublang,
+            "ke_perencana": dari_hublang,
+            "disurvei": disurvei,
+            "pipa_pendek": pipa_pendek,
+            "pipa_panjang": pipa_panjang,
+            "dikirim": dikirim,
+            "detail_keterangan": detail_keterangan,
+            "jumlah_ket": total_ket,
         }
+
     return hasil
 
 
@@ -1907,7 +1956,8 @@ def permohonan_laporan_teknis():
     hasil = hitung_kinerja_teknik(db, tahun, bulan)
     return render_template(
         "permohonan_laporan_teknis.html", tahun_list=tahun_list, tahun=tahun, bulan=bulan,
-        nama_bulan=nama_bulan, nama_bulan_list=list(enumerate(NAMA_BULAN, start=1)), hasil=hasil,
+        nama_bulan=nama_bulan, nama_bulan_list=list(enumerate(NAMA_BULAN, start=1)), 
+        hasil=hasil, daftar_keterangan=hasil["daftar_keterangan"]
     )
 
 
@@ -1917,47 +1967,159 @@ def permohonan_laporan_teknis_unduh():
     tahun = request.args.get("tahun", "")
     bulan = request.args.get("bulan", "")
     nama_bulan = NAMA_BULAN[int(bulan) - 1] if bulan else ""
+    
     hasil = hitung_kinerja_teknik(db, tahun, bulan)
+    daftar_keterangan = hasil["daftar_keterangan"]
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Kinerja Supervisi Teknik"
-    bold = Font(bold=True)
 
-    ws["A1"] = "LAPORAN KINERJA SUPERVISI TEKNIK/GAMBAR/PERHITUNGAN TEKNIS"
-    ws["A1"].font = Font(bold=True, size=12)
+    # Styling Font, Border, Alignment & Fill
+    font_title = Font(name="Calibri", bold=True, size=12)
+    font_header = Font(name="Calibri", bold=True, size=10)
+    font_body = Font(name="Calibri", size=10)
+    font_bold = Font(name="Calibri", bold=True, size=10)
+    
+    fill_header = PatternFill("solid", start_color="F2F2F2", end_color="F2F2F2")
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_left = Alignment(horizontal="left", vertical="center")
+    
+    thin_side = Side(style="thin", color="000000")
+    border_all = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+    # Hitung Jumlah Kolom
+    # Col 1: Jenis | Col 2-3: Masuk | Col 4-7: Realisasi | Col 8..: Keterangan | Last Col: Jumlah
+    total_cols = 7 + len(daftar_keterangan) + 1
+    last_col_letter = get_column_letter(total_cols)
+
+    # 1. Judul Laporan (Baris 1 & 2)
+    ws.merge_cells(f"A1:{last_col_letter}1")
+    ws["A1"] = "LAPORAN KINERJA SUPERVISI TEKNIK/GAMBAR/PERHITUNGAN TEKNIS PERMOHONAN SAMBUNGAN INSTALASI BARU DAN BUKA KEMBALI"
+    ws["A1"].font = font_title
+    ws["A1"].alignment = align_center
+
+    ws.merge_cells(f"A2:{last_col_letter}2")
     ws["A2"] = f"BULAN: {nama_bulan.upper()} {tahun}"
+    ws["A2"].font = Font(name="Calibri", bold=True, size=11)
+    ws["A2"].alignment = align_center
 
-    headers1 = ["Jenis Permohonan", "Dari Hublang", "Ke Perencana", "Disurvei",
-                "<=10 Meter", ">10m (P.Distribusi)", "Dikirim ke Hublang",
-                "Butuh Pipa Distribusi", "Meter Sudah Terpasang", "Bekas Pemutusan/Buka Kembali",
-                "Alamat/Rumah Tidak Ditemukan", "Jumlah"]
-    for col, h in enumerate(headers1, start=1):
-        ws.cell(row=4, column=col, value=h).font = bold
+    # 2. Struktur Double / Triple Header (Baris 4, 5, 6)
+    # Merge Tingkat 1 (Baris 4)
+    ws.merge_cells("A4:A6")
+    ws["A4"] = "Jenis Permohonan"
 
+    ws.merge_cells("B4:C4")
+    ws["B4"] = "Permohonan Masuk"
+
+    ws.merge_cells("D4:G4")
+    ws["D4"] = "Realisasi Gambar/Perhitungan"
+
+    ket_start_letter = get_column_letter(8)
+    ket_end_letter = get_column_letter(total_cols)
+    ws.merge_cells(f"{ket_start_letter}4:{ket_end_letter}4")
+    ws[f"{ket_start_letter}4"] = "Keterangan (Dikirim ke Hublang)"
+
+    # Merge Tingkat 2 & 3 (Baris 5 & 6)
+    ws.merge_cells("B5:B6")
+    ws["B5"] = "Dari Hublang"
+
+    ws.merge_cells("C5:C6")
+    ws["C5"] = "Ke Perencana"
+
+    ws.merge_cells("D5:D6")
+    ws["D5"] = "Disurvei"
+
+    ws.merge_cells("E5:F5")
+    ws["E5"] = "Panjang Pipa"
+    ws["E6"] = "≤10 Meter"
+    ws["F6"] = ">10m (P.Distribusi)"
+
+    ws.merge_cells("G5:G6")
+    ws["G5"] = "Di Kirim ke Hublang"
+
+    # Header Keterangan Dinamis
+    col_idx = 8
+    for ket in daftar_keterangan:
+        col_letter = get_column_letter(col_idx)
+        ws.merge_cells(f"{col_letter}5:{col_letter}6")
+        ws[f"{col_letter}5"] = ket
+        col_idx += 1
+
+    # Kolom Jumlah Paling Kanan
+    jml_col_letter = get_column_letter(total_cols)
+    ws.merge_cells(f"{jml_col_letter}5:{jml_col_letter}6")
+    ws[f"{jml_col_letter}5"] = "Jumlah"
+
+    # Terapkan Border dan Alignment untuk Semua Sel Header (Baris 4..6)
+    for r in range(4, 7):
+        for c in range(1, total_cols + 1):
+            cell = ws.cell(row=r, column=c)
+            cell.font = font_header
+            cell.fill = fill_header
+            cell.alignment = align_center
+            cell.border = border_all
+
+    # 3. Baris Data (Baris 7: SIB, Baris 8: BK)
     label_jenis = {"SIB": "Sambungan Instalasi Baru (SIB)", "BK": "Buka Kembali (BK)"}
-    r = 5
-    total = {k: 0 for k in ["dari_hublang", "ke_perencana", "disurvei", "pipa_pendek", "pipa_panjang",
-                             "dikirim", "butuh_pipa", "meter_terpasang", "bekas_pemutusan",
-                             "alamat_rumah_tt", "jumlah_ket"]}
+    r = 7
+
+    total_per_col = {c: 0 for c in range(2, total_cols + 1)}
+
     for jenis in ("SIB", "BK"):
         h = hasil[jenis]
-        ws.cell(row=r, column=1, value=label_jenis[jenis])
-        for col, key in enumerate(["dari_hublang", "ke_perencana", "disurvei", "pipa_pendek", "pipa_panjang",
-                                    "dikirim", "butuh_pipa", "meter_terpasang", "bekas_pemutusan",
-                                    "alamat_rumah_tt", "jumlah_ket"], start=2):
-            ws.cell(row=r, column=col, value=h[key])
-            total[key] += h[key]
+        ws.cell(row=r, column=1, value=label_jenis[jenis]).alignment = align_left
+        
+        # Base values
+        base_vals = [
+            h["dari_hublang"], h["ke_perencana"], h["disurvei"],
+            h["pipa_pendek"], h["pipa_panjang"], h["dikirim"]
+        ]
+        
+        for idx, val in enumerate(base_vals, start=2):
+            val_display = val if val > 0 else "-"
+            ws.cell(row=r, column=idx, value=val_display)
+            total_per_col[idx] += val
+
+        # Dynamic Keterangan Values
+        c_idx = 8
+        for ket in daftar_keterangan:
+            val = h["detail_keterangan"].get(ket, 0)
+            val_display = val if val > 0 else "-"
+            ws.cell(row=r, column=c_idx, value=val_display)
+            total_per_col[c_idx] += val
+            c_idx += 1
+
+        # Total Jumlah Keterangan Baris Ini
+        ws.cell(row=r, column=c_idx, value=h["jumlah_ket"] if h["jumlah_ket"] > 0 else "-")
+        total_per_col[c_idx] += h["jumlah_ket"]
+
+        # Apply formatting untuk baris data
+        for c in range(1, total_cols + 1):
+            cell = ws.cell(row=r, column=c)
+            cell.font = font_body
+            cell.border = border_all
+            if c > 1:
+                cell.alignment = align_center
         r += 1
 
-    ws.cell(row=r, column=1, value="JUMLAH").font = bold
-    for col, key in enumerate(["dari_hublang", "ke_perencana", "disurvei", "pipa_pendek", "pipa_panjang",
-                                "dikirim", "butuh_pipa", "meter_terpasang", "bekas_pemutusan",
-                                "alamat_rumah_tt", "jumlah_ket"], start=2):
-        ws.cell(row=r, column=col, value=total[key]).font = bold
+    # 4. Baris Total JUMLAH (Baris 9)
+    ws.cell(row=r, column=1, value="JUMLAH").alignment = align_center
+    ws.cell(row=r, column=1).font = font_bold
 
-    for col, w in zip("ABCDEFGHIJKL", [26, 11, 11, 9, 9, 15, 13, 13, 14, 16, 17, 8]):
-        ws.column_dimensions[col].width = w
+    for c in range(2, total_cols + 1):
+        cell = ws.cell(row=r, column=c, value=total_per_col[c])
+        cell.font = font_bold
+        cell.alignment = align_center
+
+    for c in range(1, total_cols + 1):
+        ws.cell(row=r, column=c).border = border_all
+
+    # 5. Penyesuaian Lebar Kolom
+    ws.column_dimensions["A"].width = 30
+    for c in range(2, total_cols + 1):
+        col_letter = get_column_letter(c)
+        ws.column_dimensions[col_letter].width = 16
 
     buf = io.BytesIO()
     wb.save(buf)

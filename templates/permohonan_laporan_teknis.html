@@ -23,14 +23,9 @@
     <div class="col-3"><button class="btn btn-outline-secondary btn-sm w-100">Tampilkan</button></div>
   </form>
 
-  <div class="d-flex gap-2 mb-3 align-items-center">
-    <button onclick="window.print()" class="btn btn-dark btn-sm">Cetak / simpan sebagai PDF</button>
-    <a href="{{ url_for('permohonan_laporan_teknis_unduh', tahun=tahun, bulan=bulan) }}" class="btn btn-outline-secondary btn-sm">Unduh sebagai .xlsx</a>
-    <select class="form-select form-select-sm" style="max-width:220px" onchange="if(this.value) window.location.href=this.value">
-      <option value="" selected disabled>Lihat laporan lain...</option>
-      <option value="{{ url_for('permohonan_laporan') }}">Ringkasan tahunan</option>
-      <option value="{{ url_for('permohonan_laporan_rincian') }}">Rincian per pelanggan</option>
-    </select>
+    <div class="d-flex gap-2 mb-3 align-items-center">
+      <button onclick="window.print()" class="btn btn-dark btn-sm">Cetak / simpan sebagai PDF</button>
+      <a href="{{ url_for('permohonan_laporan_teknis_unduh', tahun=tahun, bulan=bulan) }}" class="btn btn-outline-secondary btn-sm">Unduh sebagai .xlsx</a>
   </div>
 </div>
 
@@ -43,12 +38,12 @@
     <div style="font-size:12.5px">BULAN: {{ nama_bulan|upper }} {{ tahun }}</div>
   </div>
 
-  <table class="table table-sm table-bordered mb-0" style="font-size:11px; min-width:1000px">
+<table class="table table-sm table-bordered mb-0" style="font-size:11px; min-width:1000px">
     <tr class="text-center fw-bold">
       <th rowspan="3">Jenis Permohonan</th>
       <th colspan="2">Permohonan Masuk</th>
       <th colspan="4">Realisasi Gambar/Perhitungan</th>
-      <th colspan="5">Keterangan (Dikirim ke Hublang)</th>
+      <th colspan="{{ daftar_keterangan|length + 1 }}">Keterangan (Dikirim ke Hublang)</th>
     </tr>
     <tr class="text-center fw-bold">
       <th rowspan="2">Dari Hublang</th>
@@ -56,16 +51,19 @@
       <th rowspan="2">Disurvei</th>
       <th colspan="2">Panjang Pipa</th>
       <th rowspan="2">Di Kirim ke Hublang</th>
-      <th rowspan="2">Butuh Pipa Distribusi</th>
-      <th rowspan="2">Meter Air Sudah Terpasang</th>
-      <th rowspan="2">Bekas Pemutusan / Buka Kembali</th>
-      <th rowspan="2">Alamat/Rumah Tidak Ditemukan</th>
+      
+      {% for ket in daftar_keterangan %}
+      <th rowspan="2">{{ ket }}</th>
+      {% endfor %}
+      
       <th rowspan="2">Jumlah</th>
     </tr>
     <tr class="text-center fw-bold">
       <th>&le;10 Meter</th>
       <th>&gt;10m (P.Distribusi)</th>
     </tr>
+
+    <!-- Baris SIB -->
     <tr class="text-center">
       <td class="text-start">Sambungan Instalasi Baru (SIB)</td>
       <td>{{ hasil.SIB.dari_hublang or '-' }}</td>
@@ -74,12 +72,15 @@
       <td>{{ hasil.SIB.pipa_pendek or '-' }}</td>
       <td>{{ hasil.SIB.pipa_panjang or '-' }}</td>
       <td>{{ hasil.SIB.dikirim or '-' }}</td>
-      <td>{{ hasil.SIB.butuh_pipa or '-' }}</td>
-      <td>{{ hasil.SIB.meter_terpasang or '-' }}</td>
-      <td>{{ hasil.SIB.bekas_pemutusan or '-' }}</td>
-      <td>{{ hasil.SIB.alamat_rumah_tt or '-' }}</td>
+      
+      {% for ket in daftar_keterangan %}
+      <td>{{ hasil.SIB.detail_keterangan[ket] or '-' }}</td>
+      {% endfor %}
+      
       <td class="fw-bold">{{ hasil.SIB.jumlah_ket }}</td>
     </tr>
+
+    <!-- Baris BK -->
     <tr class="text-center">
       <td class="text-start">Buka Kembali (BK)</td>
       <td>{{ hasil.BK.dari_hublang or '-' }}</td>
@@ -88,12 +89,15 @@
       <td>{{ hasil.BK.pipa_pendek or '-' }}</td>
       <td>{{ hasil.BK.pipa_panjang or '-' }}</td>
       <td>{{ hasil.BK.dikirim or '-' }}</td>
-      <td>{{ hasil.BK.butuh_pipa or '-' }}</td>
-      <td>{{ hasil.BK.meter_terpasang or '-' }}</td>
-      <td>{{ hasil.BK.bekas_pemutusan or '-' }}</td>
-      <td>{{ hasil.BK.alamat_rumah_tt or '-' }}</td>
+      
+      {% for ket in daftar_keterangan %}
+      <td>{{ hasil.BK.detail_keterangan[ket] or '-' }}</td>
+      {% endfor %}
+      
       <td class="fw-bold">{{ hasil.BK.jumlah_ket }}</td>
     </tr>
+
+    <!-- Baris JUMLAH -->
     <tr class="fw-bold text-center">
       <td>JUMLAH</td>
       <td>{{ hasil.SIB.dari_hublang + hasil.BK.dari_hublang }}</td>
@@ -102,10 +106,11 @@
       <td>{{ hasil.SIB.pipa_pendek + hasil.BK.pipa_pendek }}</td>
       <td>{{ hasil.SIB.pipa_panjang + hasil.BK.pipa_panjang }}</td>
       <td>{{ hasil.SIB.dikirim + hasil.BK.dikirim }}</td>
-      <td>{{ hasil.SIB.butuh_pipa + hasil.BK.butuh_pipa }}</td>
-      <td>{{ hasil.SIB.meter_terpasang + hasil.BK.meter_terpasang }}</td>
-      <td>{{ hasil.SIB.bekas_pemutusan + hasil.BK.bekas_pemutusan }}</td>
-      <td>{{ hasil.SIB.alamat_rumah_tt + hasil.BK.alamat_rumah_tt }}</td>
+      
+      {% for ket in daftar_keterangan %}
+      <td>{{ hasil.SIB.detail_keterangan[ket] + hasil.BK.detail_keterangan[ket] }}</td>
+      {% endfor %}
+      
       <td>{{ hasil.SIB.jumlah_ket + hasil.BK.jumlah_ket }}</td>
     </tr>
   </table>
