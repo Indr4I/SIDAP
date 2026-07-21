@@ -1,3 +1,4 @@
 tests/
 python/
+import_tmp/
 sidap.db
