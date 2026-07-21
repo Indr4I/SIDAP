@@ -6,9 +6,12 @@
 <div class="bg-white p-3 rounded mb-3" style="max-width:560px">
   <div class="fw-bold mb-2" style="font-size:14px">Langkah 1: unduh template</div>
   <p style="font-size:13px" class="text-secondary">
-    Pakai template ini supaya kolomnya sesuai dengan struktur permohonan saat ini.
+    Pakai template ini supaya kolomnya sesuai dengan struktur permohonan saat ini. <strong>Pilih template sesuai jenisnya</strong> --
+    tab Excel di dalam kedua file ini beda nama, itu yang dipakai sistem buat nentuin SIB atau BK secara otomatis saat diimpor,
+    jadi jangan diisi campur SIB & BK dalam satu file.
   </p>
-  <a href="{{ url_for('permohonan_template') }}" class="btn btn-outline-dark btn-sm">Unduh template Excel</a>
+  <a href="{{ url_for('permohonan_template', jenis='SIB') }}" class="btn btn-outline-dark btn-sm">Unduh template SIB (Permohonan Masuk)</a>
+  <a href="{{ url_for('permohonan_template', jenis='BK') }}" class="btn btn-outline-dark btn-sm">Unduh template BK (Buka Kembali)</a>
 </div>
 
 <div class="bg-white p-3 rounded" style="max-width:560px">

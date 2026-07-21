@@ -63,11 +63,10 @@
 
 
 <div id="area-cetak" class="bg-white rounded border shadow-sm" style="overflow-x:auto">
-<table class="table table-hover align-middle mb-0 custom-compact-table">
+<table class="table table-hover align-middle mb-0 compact-table">
   <thead class="table-light">
     <tr>
       <th class="text-center" style="width: 35px">No</th>
-      <th class="text-center" style="width: 45px">Jenis</th>
       <th>Nama Pelanggan</th>
       <th>Alamat</th>
       <th>Kel / Kec</th>
@@ -86,9 +85,6 @@
     {% for r in rows %}
     <tr>
       <td class="text-center text-secondary">{{ loop.index + (page-1)*30 }}</td>
-      <td class="text-center">
-        <span class="badge {{ 'badge-sib' if r.jenis=='SIB' else 'badge-bk' }}">{{ r.jenis }}</span>
-      </td>
       <td class="fw-bold text-dark">{{ r.nama_pelanggan }}</td>
       <td class="text-muted">{{ r.lokasi or "—" }}</td>
       <td>
@@ -133,52 +129,6 @@
 </table>
 </div>
 
-<style>
-.custom-compact-pelanggan {
-  font-size: 13.5px !important; /* Font diperbesar dari 11px ke 13.5px */
-}
-.custom-compact-pelanggan th {
-  font-weight: 700;
-  color: #1e293b;
-  padding: 10px 8px !important; /* Baris header lebih lapang */
-  vertical-align: middle;
-  white-space: nowrap;
-  background-color: #f1f5f9;
-}
-.custom-compact-pelanggan td {
-  padding: 9px 8px !important; /* Baris isi tabel lebih tebal & mudah dibaca */
-  vertical-align: middle;
-}
-.print-only { display: none; }
-.print-only { display: none; }
-@media print {
-  .sidebar { display: none !important; }  .app-frame { box-shadow: none !important; border: none !important; max-width: 100% !important; }
-  body { background: #fff !important; }
-  .no-print { display: none !important; }
-  .print-only { display: block !important; }
-  table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    font-size: 11px !important;
-  }
-  table th, table td {
-    border: 1px solid #333 !important;
-    padding: 6px !important;
-  }
-  table th {
-    background: #f4f4f4 !important;
-    color: #000 !important;
-  }
-  .table-bordered {
-    border: 1px solid #333 !important;
-  }
-  .table-bordered th,
-  .table-bordered td {
-    border: 1px solid #333 !important;
-  }
-  .text-nowrap { white-space: normal !important; }
-}
-</style>
 
 {% if total_pages > 1 %}
 <nav class="mt-3 no-print d-flex justify-content-end align-items-center gap-2">

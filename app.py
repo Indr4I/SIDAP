@@ -57,10 +57,6 @@ def get_db():
         g.db = sqlite3.connect(DB_PATH)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
-        
-
-        normalisasi_database_kecamatan(g.db)
-        
     return g.db
 
 def normalisasi_database_kecamatan(db):
@@ -465,15 +461,27 @@ def parse_upload(fileobj, db):
     return rows
 
 
-def generate_permohonan_template_workbook():
+def generate_permohonan_template_workbook(jenis="SIB"):
     wb = Workbook()
     ws = wb.active
-    ws.title = "Permohonan Masuk"
+
+    # Nama tab (ws.title) ini yang dipakai logic import buat nentuin SIB/BK
+    # (lihat parse_permohonan_upload: jenis = "BK" if "buka kembali" in
+    # sheet_title else "SIB") -- makanya harus persis dibedain di sini,
+    # SATU tab per jenis, jangan digabung kayak versi sebelumnya.
+    if jenis == "BK":
+        ws.title = "Permohonan Buka Kembali"
+        judul_laporan = "LAPORAN PERMOHONAN BUKA KEMBALI DARI HUBUNGAN LANGGANAN"
+        contoh_keterangan = "Bekas Pemutusan/Buka Kembali"
+    else:
+        ws.title = "Permohonan Masuk"
+        judul_laporan = "LAPORAN PERMOHONAN MASUK DARI HUBUNGAN LANGGANAN"
+        contoh_keterangan = "Berkas / Diproses"
 
     # 1. Judul Atas Laporan (Baris 2)
     ws.merge_cells("C2:M2")
     title_cell = ws["C2"]
-    title_cell.value = "LAPORAN PERMOHONAN MASUK / BUKA KEMBALI DARI HUBUNGAN LANGGANAN"
+    title_cell.value = judul_laporan
     title_cell.font = Font(name="Calibri", bold=True, size=12, color="000000")
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
 
@@ -556,7 +564,7 @@ def generate_permohonan_template_workbook():
             c.border = thin_border
 
     # Contoh data baris pertama (Baris 6)
-    example = [1, "nama", "nama jalan", "kelurahan", "kecamatan", "", "2026-06-02", "2026-06-02", "", "nama petugas", "Keterangan berkas"]
+    example = [1, "nama", "nama jalan", "kelurahan", "kecamatan", "", "2026-06-02", "2026-06-02", "", "nama petugas", contoh_keterangan]
     for col, val in enumerate(example, start=1):
         ws.cell(row=6, column=col, value=val)
 
@@ -859,14 +867,18 @@ def pelanggan_impor_konfirmasi():
 
 @app.route("/permohonan/template")
 def permohonan_template():
-    wb = generate_permohonan_template_workbook()
+    jenis = request.args.get("jenis", "SIB").upper()
+    if jenis not in ("SIB", "BK"):
+        jenis = "SIB"
+    wb = generate_permohonan_template_workbook(jenis=jenis)
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
+    nama_file = "template_permohonan_masuk_sidap.xlsx" if jenis == "SIB" else "template_permohonan_buka_kembali_sidap.xlsx"
     return send_file(
         buf,
         as_attachment=True,
-        download_name="template_data_permohonan_sidap.xlsx",
+        download_name=nama_file,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
@@ -1177,17 +1189,6 @@ def pelanggan_export():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
-# ---------------- Detail satu pelanggan ----------------
-@app.route("/pelanggan/<int:pid>")
-def pelanggan_detail(pid):
-    db = get_db()
-    pelanggan = db.execute("SELECT * FROM pelanggan WHERE id=?", (pid,)).fetchone()
-    instalasi = db.execute(
-        "SELECT * FROM instalasi WHERE pelanggan_id=? ORDER BY tanggal_pasang", (pid,)
-    ).fetchall()
-    return render_template("pelanggan_detail.html", pelanggan=pelanggan, instalasi=instalasi)
-
-
 # ---------------- Tambah pelanggan + instalasi ----------------
 @app.route("/pelanggan/tambah", methods=["GET", "POST"])
 def pelanggan_tambah():
@@ -1290,7 +1291,7 @@ def instalasi_tambah(pid):
         )
         db.commit()
         flash(f"Instalasi baru untuk {pelanggan['nama']} tersimpan.")
-        return redirect(url_for("pelanggan_detail", pid=pid))
+        return redirect(url_for("pelanggan_list"))
 
     return render_template("instalasi_form.html", pelanggan=pelanggan, form_data=None)
 
@@ -2547,6 +2548,18 @@ def permohonan_hapus(pmid):
 
 if __name__ == "__main__":
     ensure_data_paths()
+
+    # Normalisasi nama kecamatan dijalankan SEKALI di sini, bukan per-request
+    # (get_db()) -- data yang masuk lewat import Excel udah dibersihkan di
+    # titik importnya sendiri, jadi yang perlu dibereskan di sini cuma sisa
+    # data lama yang udah kadung tersimpan sebelum aturan ini ada.
+    if db_has_schema():
+        _startup_conn = sqlite3.connect(DB_PATH)
+        _startup_conn.row_factory = sqlite3.Row
+        try:
+            normalisasi_database_kecamatan(_startup_conn)
+        finally:
+            _startup_conn.close()
 
     # Otomatis buka browser saat file .exe dijalankan
     import webbrowser

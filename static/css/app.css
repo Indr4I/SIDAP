@@ -1,0 +1,154 @@
+/* ============================================================
+   SIDAP - stylesheet gabungan
+   Sebelumnya style-style ini nempel berulang lewat <style> di
+   base.html + tiap halaman laporan/list (copy-paste antar file).
+   Sekarang satu sumber di sini, di-load sekali dari base.html.
+   Kalau ada style baru yang dipakai di LEBIH DARI SATU halaman,
+   taruh di sini. Kalau cuma spesifik ke satu halaman, biarkan
+   inline di halaman itu saja -- jangan taruh semua di sini.
+   ============================================================ */
+
+/* ---------------- Layout dasar ---------------- */
+body {
+  background: linear-gradient(160deg, #eaf2ff 0%, #f7fafe 45%, #eef4ff 100%);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+}
+.app-frame {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
+.main-area { background: transparent; }
+
+/* ---------------- Sidebar ---------------- */
+.sidebar {
+  width: 220px;
+  background: linear-gradient(180deg, #eef4ff 0%, #e3edfd 100%);
+  min-height: 100vh;
+  padding: 20px 14px;
+  border-right: 1px solid #dbe8ff;
+}
+.sidebar a {
+  color: #1a3154;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 3px;
+}
+.sidebar a .nav-emoji { font-size: 15px; width: 18px; text-align: center; }
+.sidebar a.active {
+  background: linear-gradient(135deg, #2f6fed, #5b9df9);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(47, 111, 237, 0.35);
+}
+.sidebar a:not(.active):hover { background: #dce8fd; }
+.sidebar .section-label {
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: black;
+  margin: 16px 0 4px 12px;
+  font-weight: bold;
+}
+.brand { color: #1d3f78; font-weight: 800; font-size: 17px; padding: 0 10px 22px; letter-spacing: 0.2px; }
+.brand span {
+  background: linear-gradient(135deg, #2f6fed, #6aa6ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------------- Kartu ringkasan dashboard ---------------- */
+.stat-card {
+  background: #fff;
+  border: 1px solid #e3ecfb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(47, 111, 237, 0.06);
+}
+.stat-card .label { font-size: 12px; color: #6b7280; }
+.stat-card .value { font-size: 22px; font-weight: 700; color: #1d3f78; }
+
+/* ---------------- Elemen umum ---------------- */
+h4.fw-bold { color: #1d3f78; }
+.btn-dark {
+  background: linear-gradient(135deg, #2f6fed, #1d3f78);
+  border: none;
+}
+.btn-dark:hover { background: linear-gradient(135deg, #2860d6, #17325f); }
+
+.badge-sib { background: #fef3c7; color: #92400e; }
+.badge-bk { background: #dcfce7; color: #15803d; }
+
+/* ---------------- Tabel list compact (dipakai di Semua Pelanggan
+   & Semua Permohonan -- dulu ada 2 salinan nyaris identik dengan
+   nama class beda-beda karena copy-paste, sekarang satu nama saja) --- */
+.compact-table {
+  font-size: 13.5px !important;
+}
+.compact-table th {
+  font-weight: 700;
+  color: #1e293b;
+  padding: 10px 8px !important;
+  vertical-align: middle;
+  white-space: nowrap;
+  background-color: #f1f5f9;
+}
+.compact-table td {
+  padding: 9px 8px !important;
+  vertical-align: middle;
+}
+
+/* ---------------- Footer tanda tangan (laporan bulanan & kinerja
+   teknik) ---------------- */
+.footer-ttd {
+  display: block !important;
+  margin-top: 35px !important;
+}
+
+/* ---------------- Print helpers ----------------
+   .print-only ditampilkan cuma pas print (window.print()).
+   .no-print disembunyikan pas print. Ini dipakai di semua
+   halaman laporan/list -- dulu diulang di tiap file. */
+.print-only { display: none; }
+
+@media print {
+  .no-print, .sidebar { display: none !important; }
+  .app-frame { box-shadow: none !important; border: none !important; max-width: 100% !important; padding: 0 !important; }
+  #area-cetak { border: none !important; box-shadow: none !important; padding: 0 !important; }
+  body { background: #fff !important; }
+  .print-only { display: block !important; }
+  #txt-total-info { display: none !important; }
+
+  /* Tabel list (Semua Pelanggan / Semua Permohonan) butuh border tegas
+     & font lebih kecil pas dicetak -- beda dari tampilan layar biasa. */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 11px !important;
+  }
+  table th, table td {
+    border: 1px solid #333 !important;
+    padding: 6px !important;
+  }
+  table th {
+    background: #f4f4f4 !important;
+    color: #000 !important;
+  }
+  .table-bordered,
+  .table-bordered th,
+  .table-bordered td {
+    border: 1px solid #333 !important;
+  }
+  .text-nowrap { white-space: normal !important; }
+}
