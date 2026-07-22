@@ -3,12 +3,17 @@
 {% block content %}
 <h4 class="fw-bold mb-1">Pratinjau impor permohonan</h4>
 <div class="text-secondary mb-3" style="font-size:13px">
-  {{ total }} baris terbaca &mdash; {{ jumlah_valid }} baris valid siap disimpan, {{ jumlah_error }} baris bermasalah.
+  {{ total }} baris terbaca &mdash; {{ jumlah_valid }} baris valid siap disimpan, {{ jumlah_duplikat }} baris kemungkinan duplikat, {{ jumlah_error }} baris bermasalah.
 </div>
 
 {% if jumlah_error > 0 %}
 <div class="alert alert-warning py-2" style="font-size:13px">
   Baris yang bermasalah <b>tidak</b> akan disimpan kalau kamu lanjut konfirmasi. Perbaiki dulu di file Excel dan upload ulang kalau mau semua baris masuk.
+</div>
+{% endif %}
+{% if jumlah_duplikat > 0 %}
+<div class="alert alert-warning py-2" style="font-size:13px">
+  Ada {{ jumlah_duplikat }} baris yang nama + lokasi + tanggal permohonan + jenisnya persis sama dengan data yang sudah ada di database (kemungkinan file ini sudah pernah diupload sebelumnya). Baris ini <b>otomatis dilewati</b> dan tidak akan disimpan dobel. Kalau memang sengaja mau dimasukkan lagi, isi manual lewat form Tambah Permohonan.
 </div>
 {% endif %}
 
@@ -18,7 +23,7 @@
       <th>Nama Pelanggan</th><th>Kecamatan</th><th>Jenis</th><th>Tgl Permohonan</th><th>Ditindaklanjuti</th><th>Jenis Pipa</th><th>Petugas Survey</th><th>Keterangan</th><th>Status</th>
     </tr>
     {% for r in rows %}
-    <tr class="{{ 'table-danger' if r.errors else '' }}">
+    <tr class="{{ 'table-danger' if r.errors else ('table-warning' if r.kemungkinan_duplikat else '') }}">
       <td>{{ r.nama_pelanggan }}</td>
       <td>{{ r.kecamatan }}</td>
       <td>{{ r.jenis }}</td>
@@ -30,6 +35,8 @@
       <td>
         {% if r.errors %}
           <span class="text-danger">{{ r.errors | join(", ") }}</span>
+        {% elif r.kemungkinan_duplikat %}
+          <span class="text-warning fw-bold">Kemungkinan duplikat, dilewati</span>
         {% else %}
           <span class="text-success">Siap disimpan</span>
         {% endif %}

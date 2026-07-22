@@ -197,6 +197,7 @@ KECAMATAN_MAP = {
     "s. pane": "Panombean Panei",
     "s.pane": "Panombean Panei",
     "s. p.panei" : "Panombean Panei",
+    "s.p.panei" : "Panombean Panei",
 
     # Variasi Siantar Barat
     "s. barat": "Siantar Barat",
@@ -579,6 +580,23 @@ def parse_permohonan_upload(fileobj, db):
         raise ValueError("File Excel ini kosong, tidak ada sheet sama sekali.")
     ws = wb.worksheets[0]
 
+    # Signature permohonan yang udah ada di database, dipakai buat deteksi
+    # duplikat pas import (nama+lokasi+tanggal_permohonan+jenis -- kombinasi
+    # ini nyaris mustahil kebetulan sama kecuali emang re-upload file yang
+    # sama). "seen_in_batch" buat nangkep kalau ada baris kembar dalam satu
+    # file yang sama juga.
+    existing_signatures = set()
+    for row in db.execute(
+        "SELECT nama_pelanggan, lokasi, tanggal_permohonan, jenis FROM permohonan"
+    ).fetchall():
+        existing_signatures.add((
+            str(row["nama_pelanggan"] or "").strip().lower(),
+            str(row["lokasi"] or "").strip().lower(),
+            str(row["tanggal_permohonan"] or "").strip(),
+            str(row["jenis"] or "").strip().upper(),
+        ))
+    seen_in_batch = set()
+
     # Gabungkan teks baris 4 dan baris 5 agar sub-header seperti "Ke Perencana" terbaca sempurna
     col_index = {}
     max_cols = ws.max_column
@@ -647,6 +665,18 @@ def parse_permohonan_upload(fileobj, db):
         if "selisih" in keterangan.lower() or tanggal_kembali_hublang:
             ditindaklanjuti = 0
 
+        # Deteksi kemungkinan duplikat: persis sama nama+lokasi+tanggal
+        # permohonan+jenis dengan yang udah ada di database, atau udah
+        # muncul di baris lain dalam file yang sama ini.
+        signature = (
+            nama_pelanggan.strip().lower(),
+            lokasi.strip().lower(),
+            str(tanggal_permohonan or "").strip(),
+            jenis.strip().upper(),
+        )
+        kemungkinan_duplikat = signature in existing_signatures or signature in seen_in_batch
+        seen_in_batch.add(signature)
+
         rows.append({
             "nama_pelanggan": nama_pelanggan,
             "lokasi": lokasi,
@@ -662,6 +692,7 @@ def parse_permohonan_upload(fileobj, db):
             "tanggal_kembali_hublang": tanggal_kembali_hublang or "",
             "keterangan": keterangan,
             "errors": row_errors,
+            "kemungkinan_duplikat": kemungkinan_duplikat,
         })
 
     return rows
@@ -910,10 +941,12 @@ def permohonan_impor():
             json.dump(rows, f, ensure_ascii=False)
 
         jumlah_error = sum(1 for r in rows if r["errors"])
-        jumlah_valid = len(rows) - jumlah_error
+        jumlah_duplikat = sum(1 for r in rows if not r["errors"] and r.get("kemungkinan_duplikat"))
+        jumlah_valid = len(rows) - jumlah_error - jumlah_duplikat
         return render_template(
             "permohonan_import_preview.html", rows=rows, token=token,
-            jumlah_error=jumlah_error, jumlah_valid=jumlah_valid, total=len(rows),
+            jumlah_error=jumlah_error, jumlah_valid=jumlah_valid,
+            jumlah_duplikat=jumlah_duplikat, total=len(rows),
         )
 
     return render_template("permohonan_import_upload.html")
@@ -938,36 +971,37 @@ def permohonan_impor_konfirmasi():
         flash("Tidak ada baris valid yang bisa disimpan -- semua baris punya error.", "error")
         return redirect(url_for("permohonan_impor"))
 
-    db = get_db()
-    
-    # 1. Pastikan kolom no_spk ada di tabel permohonan (Auto-Migration sederhana)
-    try:
-        db.execute("ALTER TABLE permohonan ADD COLUMN no_spk TEXT")
-        db.commit()
-    except sqlite3.OperationalError:
-        pass  # Abaikan jika kolom no_spk sudah ada sebelumnya
+    # Baris yang kemungkinan duplikat (persis sama nama+lokasi+tanggal
+    # permohonan+jenis dengan data yang sudah ada) otomatis dilewati, tidak
+    # ikut disimpan -- daripada dobel tanpa disadari saat file yang sama
+    # ke-upload lebih dari sekali.
+    baris_dilewati = sum(1 for r in valid_rows if r.get("kemungkinan_duplikat"))
+    valid_rows = [r for r in valid_rows if not r.get("kemungkinan_duplikat")]
+    if not valid_rows:
+        flash(
+            f"Semua {baris_dilewati} baris yang valid ternyata kemungkinan duplikat "
+            f"dari data yang sudah ada -- tidak ada yang disimpan. Kalau memang mau "
+            f"tetap dimasukkan, isi manual lewat form Tambah Permohonan.",
+            "error",
+        )
+        return redirect(url_for("permohonan_impor"))
 
-    # 2. Ambil nilai No. SPK terbesar saat ini untuk Auto-Increment
-    max_spk_row = db.execute("SELECT MAX(CAST(no_spk AS INTEGER)) m FROM permohonan").fetchone()
-    current_spk = int(max_spk_row["m"]) if max_spk_row and max_spk_row["m"] else 0
+    db = get_db()
 
     tersimpan = 0
     for r in valid_rows:
-        current_spk += 1
-        
         db.execute(
             """INSERT INTO permohonan
-               (nama_pelanggan, lokasi, kelurahan, kecamatan, jenis, no_spk, tanggal_permohonan,
+               (nama_pelanggan, lokasi, kelurahan, kecamatan, jenis, tanggal_permohonan,
                 tanggal_survey, petugas_survey, ditindaklanjuti, jenis_pipa,
                 tanggal_dikirim_hublang, tanggal_kembali_hublang, keterangan)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 r.get("nama_pelanggan", ""),
                 r.get("lokasi", ""),
                 r.get("kelurahan", ""),
                 r.get("kecamatan", ""),
                 r.get("jenis", "SIB"),
-                str(current_spk),
                 r.get("tanggal_permohonan", ""),
                 r.get("tanggal_survey") or None,
                 r.get("petugas_survey") or None,
@@ -982,10 +1016,12 @@ def permohonan_impor_konfirmasi():
         
     db.commit()
 
-    dilewati = len(rows) - tersimpan
+    dilewati_error = len(rows) - len(valid_rows) - baris_dilewati
     pesan = f"{tersimpan} baris permohonan berhasil diimpor dengan No. SPK otomatis."
-    if dilewati:
-        pesan += f" {dilewati} baris dilewati karena ada error."
+    if dilewati_error > 0:
+        pesan += f" {dilewati_error} baris dilewati karena ada error."
+    if baris_dilewati > 0:
+        pesan += f" {baris_dilewati} baris dilewati karena kemungkinan duplikat data yang sudah ada."
     flash(pesan)
     return redirect(url_for("permohonan_list"))
 
@@ -1758,6 +1794,21 @@ def permohonan_list():
     page = min(page, total_pages)
     rows = rows_all[(page - 1) * per_page: page * per_page]
 
+    # No. SPK BUKAN id permanen -- itu cuma nomor urut baris per bulan+jenis,
+    # dihitung ulang tiap kali halaman ini dibuka (sama seperti cara Rincian
+    # Bulanan menghitungnya lewat loop.index), bukan disimpan di database.
+    # Dihitung dari SELURUH data (bukan cuma yang lagi difilter/dipaginasi)
+    # supaya urutannya konsisten walau lagi nyari/filter sebagian.
+    spk_rows = db.execute(
+        """SELECT id, ROW_NUMBER() OVER (
+               PARTITION BY strftime('%Y-%m', tanggal_permohonan), jenis
+               ORDER BY tanggal_permohonan ASC, id ASC
+           ) AS spk_bulan
+           FROM permohonan
+           WHERE tanggal_permohonan IS NOT NULL AND tanggal_permohonan != ''"""
+    ).fetchall()
+    spk_map = {r["id"]: r["spk_bulan"] for r in spk_rows}
+
     ringkas = {
         "menunggu": db.execute("SELECT COUNT(*) c FROM permohonan WHERE ditindaklanjuti IS NULL").fetchone()["c"],
         "ditindaklanjuti": db.execute("SELECT COUNT(*) c FROM permohonan WHERE ditindaklanjuti = 1 AND instalasi_id IS NULL").fetchone()["c"],
@@ -1768,7 +1819,7 @@ def permohonan_list():
     return render_template(
         "permohonan_list.html", rows=rows, jenis=jenis, status=status, kecamatan=kecamatan,
         tahun=tahun, bulan=bulan, q=q,
-        page=page, total_pages=total_pages, total=total, ringkas=ringkas,
+        page=page, total_pages=total_pages, total=total, ringkas=ringkas, spk_map=spk_map,
     )
 
 

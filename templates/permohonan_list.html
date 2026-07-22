@@ -91,7 +91,7 @@
         <div>{{ r.kelurahan or "—" }}</div>
         <div class="text-secondary" style="font-size: 10px">{{ r.kecamatan or "—" }}</div>
       </td>
-      <td class="text-center fw-bold text-primary">{{ r.no_spk or r.id }}</td>
+      <td class="text-center fw-bold text-primary">{{ spk_map.get(r.id, '—') }}</td>
       <td class="text-center text-nowrap">{{ r.tanggal_permohonan or "—" }}</td>
       <td class="text-center text-nowrap">{{ r.tanggal_survey or "—" }}</td>
       <td class="text-center text-nowrap">{{ r.tanggal_dikirim_hublang or "—" }}</td>
