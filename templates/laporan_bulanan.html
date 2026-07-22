@@ -34,14 +34,14 @@
         <div class="col-md-6">
           <input type="text" class="form-control form-control-sm mb-1" id="input-keterangan-kiri" value="Diperiksa Oleh :" oninput="updateFooterTTD()" placeholder="Keterangan Kiri">
           <input type="text" class="form-control form-control-sm mb-1" id="input-jabatan-kiri" value="Kabag Perencana & Supervisi" oninput="updateFooterTTD()" placeholder="Jabatan Kiri">
-          <input type="text" class="form-control form-control-sm" id="input-nama-kiri" value="NAMA" oninput="updateFooterTTD()" placeholder="Nama Kiri">
+          <input type="text" class="form-control form-control-sm" id="input-nama-kiri" placeholder="Nama Pemangku Jabatan (Kiri)" oninput="updateFooterTTD()" placeholder="Nama Kiri">
         </div>
         <!-- Sisi Kanan -->
         <div class="col-md-6">
           <input type="text" class="form-control form-control-sm mb-1" id="input-kota-tgl" value="Pematangsiantar, {{ today }}" oninput="updateFooterTTD()" placeholder="Kota & Tanggal">
           <input type="text" class="form-control form-control-sm mb-1" id="input-keterangan-kanan" value="Diperbuat Oleh :" oninput="updateFooterTTD()" placeholder="Keterangan Kanan">
           <input type="text" class="form-control form-control-sm mb-1" id="input-jabatan-kanan" value="Kasubbag Perencana Jaringan" oninput="updateFooterTTD()" placeholder="Jabatan Kanan">
-          <input type="text" class="form-control form-control-sm" id="input-nama-kanan" value="NAMA" oninput="updateFooterTTD()" placeholder="Nama Kanan">
+          <input type="text" class="form-control form-control-sm" id="input-nama-kanan" placeholder="Nama Pemangku Jabatan (Kanan)" oninput="updateFooterTTD()" placeholder="Nama Kanan">
         </div>
       </div>
     </div>
@@ -83,29 +83,28 @@
     </tfoot>
   </table>
 
-  <!-- ================= SECTION FOOTER TANDA TANGAN ================= -->
-  <div class="footer-ttd mt-4" style="page-break-inside: avoid;">
-    <div class="d-flex justify-content-between text-dark" style="font-size: 12px; font-family: sans-serif;">
-      
-      <!-- Sisi Kiri -->
-      <div style="min-width: 250px;" class="text-start">
-        <div style="height: 18px;"></div> <!-- Penyeimbang tinggi kota & tanggal -->
-        <div id="txt-keterangan-kiri">Diperiksa Oleh :</div>
-        <div id="txt-jabatan-kiri" class="fw-semibold">Kabag Perencana & Supervisi</div>
-        <div style="height: 60px;"></div> <!-- Ruang tanda tangan -->
-        <div id="txt-nama-kiri" class="fw-bold text-decoration-underline">NAMA</div>
-      </div>
-
-      <!-- Sisi Kanan -->
-      <div style="min-width: 250px;" class="text-center">
-        <div id="txt-kota-tgl" class="mb-1">Pematangsiantar, {{ today }}</div>
-        <div id="txt-keterangan-kanan">Diperbuat Oleh :</div>
-        <div id="txt-jabatan-kanan" class="fw-semibold">Kasubbag Perencana Jaringan</div>
-        <div style="height: 60px;"></div> <!-- Ruang tanda tangan -->
-        <div id="txt-nama-kanan" class="fw-bold text-decoration-underline">NAMA</div>
-      </div>
-
+<!-- FOOTER TANDA TANGAN -->
+<div class="footer-ttd mt-4" style="page-break-inside: avoid;">
+  <div class="d-flex justify-content-between text-dark" style="font-size: 12px; font-family: sans-serif;">
+    
+    <!-- SISI KIRI (Ubah class 'text-start' jadi 'text-center') -->
+    <div style="min-width: 250px;" class="text-center">
+      <div style="height: 18px;"></div> <!-- Penyeimbang tinggi kota & tanggal -->
+      <div id="txt-keterangan-kiri">Diperiksa Oleh :</div>
+      <div id="txt-jabatan-kiri" class="fw-semibold">Kabag Perencana & Supervisi</div>
+      <div style="height: 60px;"></div> <!-- Ruang tanda tangan -->
+      <div id="txt-nama-kiri" class="fw-bold text-decoration-underline">NAMA</div>
     </div>
+
+    <!-- SISI KANAN (Tetap 'text-center') -->
+    <div style="min-width: 250px;" class="text-center">
+      <div id="txt-kota-tgl" class="mb-1">Pematangsiantar, {{ today }}</div>
+      <div id="txt-keterangan-kanan">Diperbuat Oleh :</div>
+      <div id="txt-jabatan-kanan" class="fw-semibold">Kasubbag Perencana Jaringan</div>
+      <div style="height: 60px;"></div> <!-- Ruang tanda tangan -->
+      <div id="txt-nama-kanan" class="fw-bold text-decoration-underline">NAMA</div>
+    </div>
+
   </div>
 </div>
 

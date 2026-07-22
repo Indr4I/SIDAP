@@ -196,7 +196,7 @@ KECAMATAN_MAP = {
     "s.panei": "Panombean Panei",
     "s. pane": "Panombean Panei",
     "s.pane": "Panombean Panei",
-    "S. P.Panei" : "Panombean Panei",
+    "s. p.panei" : "Panombean Panei",
 
     # Variasi Siantar Barat
     "s. barat": "Siantar Barat",
@@ -212,12 +212,13 @@ KECAMATAN_MAP = {
     "s. marimbun": "Siantar Marimbun",
     "s.marimbun": "Siantar Marimbun",
     "siantar marimbun": "Siantar Marimbun",
-    "S.Simarimbun": "Siantar Marimbun",
+    "s.simarimbun": "Siantar Marimbun",
 
     # Variasi Siantar Martoba
     "s. martoba": "Siantar Martoba",
     "s.martoba": "Siantar Martoba",
     "siantar martoba": "Siantar Martoba",
+    "s.matoba" : "Siantar Martoba",
 
     # Variasi Siantar Sitalasari
     "s. sitalasari": "Siantar Sitalasari",
